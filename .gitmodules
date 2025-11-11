@@ -1,0 +1,9 @@
+[submodule "illajwala-admin"]
+	path = illajwala-admin
+	url = git@github-personal:arjun-computer-geek/illajwala-admin.git
+[submodule "illajwala-doctor"]
+	path = illajwala-doctor
+	url = git@github-personal:arjun-computer-geek/illajwala-doctor.git
+[submodule "illajwala-patient"]
+	path = illajwala-patient
+	url = git@github-personal:arjun-computer-geek/illajwala-patient.git
