@@ -130,18 +130,16 @@
 ## 7. Implementation Playbook
 
 ### 7.1 Repository & Code Management
-- Maintain three separate apps (`illajwala-patient`, `illajwala-doctor`, `illajwala-admin`) with shared packages under `packages/` (to be created) for:
-  - `@illajwala/ui` (design system, Tailwind tokens).
-  - `@illajwala/types` (TypeScript types & API contracts).
-  - `@illajwala/utils` (shared helpers).
-- Backend services to reside under `services/` with Yarn workspaces/TurboRepo for build orchestration.
-- Enforce conventional commits & changesets; automatic versioning for shared packages.
-- Implement branch protection, PR templates (checklists for tests, security, docs).
+- Maintain three submodule apps (`illajwala-patient`, `illajwala-doctor`, `illajwala-admin`); keep their Git histories isolated.
+- Publish shared UI components, types, and SDKs as private npm packages (e.g., `@illajwala/ui`, `@illajwala/api-client`) consumed by each submodule.
+- Host shared Node.js services (identity, provider, scheduling, messaging, payments) in `shared-services/` workspace or dedicated repos with consistent tooling.
+- Enforce conventional commits & changesets; automate semantic versioning for shared packages.
+- Implement branch protection, PR templates (tests, security, docs), and dependency update cadence per repo.
 
 ### 7.2 Environment Strategy
-- **Local:** Docker Compose spins core services (Postgres, Redis, Kafka). Use `.env.local` per app.
-- **Dev/Staging:** Hosted on cloud (AWS/GCP); feature branches deploy to ephemeral environments via Vercel/Netlify + Fly.io/Render for APIs.
-- **Prod:** Multi-region (ap-south-1 primary). Secrets managed via Vault/SSM; Infrastructure-as-Code (Terraform/Pulumi).
+- **Local:** Docker Compose runs MongoDB (Atlas local dev image/ReplicaSet), Redis (cache/queues), and shared services. Apps rely on `.env.local` with service URLs.
+- **Dev/Staging:** Cloud-hosted (AWS/GCP) using Vercel/Netlify for Next.js fronts, Fly.io/Render/EC2 for Node services, MongoDB Atlas for database cluster.
+- **Prod:** Primary region ap-south-1 with cross-region backups. Secrets managed via Vault/SSM; Terraform/Pulumi provisions services, networking, monitoring.
 
 ### 7.3 Testing Strategy
 - **Unit Tests:** Jest/Vitest for frontend & backend packages.
@@ -189,7 +187,7 @@
   - Doctor profile page.
   - Slot selection component.
 - **Shared Services**
-  - Provider service (REST endpoints + Postgres schema).
+  - Provider service (REST endpoints + shared Mongo collections).
   - Slot service with conflict detection.
   - Seed scripts for sample data.
 

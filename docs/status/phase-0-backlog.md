@@ -15,9 +15,8 @@
 - Deliver Figma (or equivalent) library linked to `@illajwala/ui` package.
 
 ### 2. Repository & Tooling Setup
-- Restructure repo with `packages/` and `services/` directories per ADR-0001.
-- Configure Turborepo/Yarn workspaces for shared builds and caching.
-- Implement lint/test/build pipelines via GitHub Actions (or chosen CI).
+- Configure private npm registry (e.g., GitHub Packages) for shared packages (`@illajwala/ui`, `@illajwala/types`, `@illajwala/api-client`).
+- Align lint/test/build pipelines across submodules via GitHub Actions (or chosen CI) templates.
 - Set up commit linting, changesets, and pre-commit hooks.
 - Document contribution guidelines and PR templates.
 
@@ -29,8 +28,8 @@
 - Establish secrets management strategy and baseline security checklist.
 
 ### 4. Infrastructure & Environments
-- Author Terraform/Pulumi baseline for networking, databases, storage.
-- Create Docker Compose for local development (Postgres, Redis, message broker).
+- Author Terraform/Pulumi baseline for networking, MongoDB Atlas, storage buckets.
+- Create Docker Compose for local development (Mongo replica set, Redis, optional message broker).
 - Set up dev/staging environment naming conventions and deployment targets.
 - Configure observability stack scaffolding (logging, metrics, tracing instrumentation).
 
@@ -41,9 +40,9 @@
 - Schedule stakeholder reviews for design system and auth decisions.
 
 ## Deliverables by End of Phase 0
-- Shared design system repo/package with at least five core components aligned.
-- Functioning monorepo toolchain with CI validating lint + test.
+- Shared design system package published with at least five core components aligned.
+- Shared npm packages pipeline (publish/test) and CI templates reused across submodules.
 - Auth service skeleton deployed to dev environment; frontend apps using shared login stub.
-- Infrastructure scripts provisioning dev environment end-to-end.
+- Infrastructure scripts provisioning dev environment end-to-end (Mongo + services).
 - Documented playbook for Phase 1 handoff (`docs/status/phase-1-plan.md` to be drafted next).
 

@@ -2,26 +2,26 @@
 - **Date:** 2025-11-11
 - **Status:** Accepted
 - **Context:** The VisitNow platform currently comprises three separate applications (`illajwala-patient`, `illajwala-doctor`, `illajwala-admin`) with duplicated UI components and inconsistent API contracts. As we expand into a multi-tenant SaaS offering, we need a scalable architecture that enables rapid iteration, clear ownership boundaries, and shared infrastructure (identity, scheduling, payments, notifications). The existing state hinders cross-product velocity, increases maintenance cost, and complicates compliance and observability.
-- **Decision:** Adopt a modular platform architecture with:
-  1. **Shared packages** (`packages/`) for UI, types, utilities, and configuration managed via a monorepo toolchain (Turborepo/Yarn workspaces).
-  2. **Domain-aligned backend services** (`services/`) for identity, providers, appointments, payments, messaging, and analytics. Each service exposes REST/GraphQL APIs and publishes domain events.
-  3. **API gateways/BFFs** per client app (patient, doctor, admin) to tailor responses, handle caching, and enforce RBAC.
-  4. **Shared platform services** for notifications, observability, and document storage.
-  5. **Infrastructure-as-code** for consistent environment provisioning across dev/staging/prod.
+- **Decision:** Adopt a modular platform architecture that:
+  1. Maintains independent repositories via git submodules for patient, doctor, and admin applications while introducing shared SDKs published through an internal package registry.
+  2. Establishes domain-aligned Node.js services (identity, providers, appointments, payments, messaging, analytics) deployed independently but backed by a shared MongoDB cluster (separate databases/collections per domain) with centralized access controls.
+  3. Provides API gateways/BFFs per client app (patient, doctor, admin) to tailor responses, enforce RBAC, and mediate access to shared services and data.
+  4. Centralizes platform capabilities—notifications, observability, document storage, analytics—through shared services accessible from all apps.
+  5. Uses infrastructure-as-code for consistent provisioning across dev/staging/prod, including MongoDB Atlas (or equivalent) configuration, secrets management, and automated seeding.
 - **Alternatives Considered:**
-  - **Single monolith API:** Faster initial delivery but risks slow deployments, difficulty scaling teams, and entangled responsibilities.
-  - **Fully decoupled microservices per feature:** High autonomy but overkill at current scale; increases operational complexity without clear benefit.
-  - **Frontends-only monorepo with separate backend repos:** Improves UI reuse but still leaves backend contracts fragmented.
+  - **Single monolith API + database:** Simplifies deployment but creates a bottleneck for team autonomy and complicates phased rollouts.
+  - **Fully decoupled microservices with isolated databases:** Maximizes isolation but increases operational burden (data duplication, distributed transactions).
+  - **Full monorepo with shared packages/services:** Eases dependency management but conflicts with existing submodule setup and team workflow.
 - **Consequences:**
-  - Requires upfront investment in repository restructuring, CI/CD pipelines, and shared tooling.
-  - Enables clearer ownership boundaries, faster reuse of components, and easier compliance audits.
-  - Facilitates future white-labeling and regional deployments.
-  - Demands governance (coding standards, API versioning) to avoid sprawl.
+  - Requires governance for shared Mongo collections, index management, and schema validations (e.g., using Zod/JOI/Mongoose).
+  - Demands publication/versioning of shared SDKs to keep submodule apps in sync.
+  - Enables clearer ownership boundaries and reuse while respecting existing repo arrangement.
+  - Facilitates future white-labeling and regional deployments via centralized services and data.
 - **Follow-up Actions:**
-  - Stand up `packages/` and `services/` directories with scaffolding.
-  - Author technical design for shared identity service (Phase 0 deliverable).
-  - Update CI/CD pipelines to handle monorepo builds and caching.
-  - Document service contracts using shared OpenAPI specs.
+  - Publish shared type definitions and service clients to an internal registry.
+  - Define canonical collection schemas, validation layers, and indexing strategy for the shared Mongo cluster.
+  - Implement shared service endpoints enforcing RBAC over consolidated data.
+  - Update CI/CD pipelines in each repo to run schema validation tests and integration suites against the shared services.
 - **Related Documents:**
   - `MASTER-PRD.md` (platform blueprint)
   - `docs/changelog.md` (record future decisions/releases)
