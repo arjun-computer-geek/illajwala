@@ -2,6 +2,7 @@ import { connectDatabase, disconnectDatabase } from "../config/database";
 import { DoctorModel } from "../modules/doctors/doctor.model";
 import { PatientModel } from "../modules/patients/patient.model";
 import { AppointmentModel } from "../modules/appointments/appointment.model";
+import { AdminModel } from "../modules/admins/admin.model";
 import { hashPassword } from "../utils/password";
 
 const sampleDoctors = [
@@ -88,6 +89,12 @@ const samplePatient = {
       relationship: "Daughter",
     },
   ],
+};
+
+const sampleAdmin = {
+  name: "Illajwala Admin",
+  email: "ops@illajwala.com",
+  password: "admin123",
 };
 
 const createSampleAppointments = async (patientId: string, doctorIds: string[]) => {
@@ -177,6 +184,21 @@ const seed = async () => {
     doctors.map((doc) => doc.id)
   );
   console.info("✅ Sample appointments ensured");
+
+  const adminPasswordHash = await hashPassword(sampleAdmin.password);
+  const admin = await AdminModel.findOneAndUpdate(
+    { email: sampleAdmin.email },
+    {
+      $set: {
+        name: sampleAdmin.name,
+        email: sampleAdmin.email,
+        passwordHash: adminPasswordHash,
+        role: "admin",
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+  console.info(`✅ Admin ready: ${admin.name}`);
 
   console.info("🎉 Seeding complete");
 };

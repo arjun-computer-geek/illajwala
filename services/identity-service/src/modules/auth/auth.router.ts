@@ -3,11 +3,13 @@ import {
   handleLoginDoctor,
   handleLoginPatient,
   handleRegisterPatient,
+  handleLoginAdmin,
 } from "./auth.controller";
 import { validateRequest } from "../../middlewares/validate-request";
 import {
   loginDoctorSchema,
   loginPatientSchema,
+  loginAdminSchema,
   registerPatientSchema,
 } from "./auth.schema";
 
@@ -27,5 +29,10 @@ authRouter.post(
   "/doctor/login",
   validateRequest({ body: loginDoctorSchema }),
   handleLoginDoctor
+);
+authRouter.post(
+  "/admin/login",
+  validateRequest({ body: loginAdminSchema }),
+  handleLoginAdmin
 );
 

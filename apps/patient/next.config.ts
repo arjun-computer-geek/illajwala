@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
+const sharedTranspile = [
+  "@illajwala/ui",
+  "@illajwala/types",
+  "@illajwala/api-client",
+  "@illajwala/utils",
+];
+
 const nextConfig: NextConfig = {
+  transpilePackages: sharedTranspile,
   images: {
     remotePatterns: [
       {

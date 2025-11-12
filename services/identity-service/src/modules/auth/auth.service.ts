@@ -4,7 +4,13 @@ import { verifyPassword, hashPassword } from "../../utils/password";
 import { signJwt } from "../../utils/jwt";
 import { PatientModel } from "../patients/patient.model";
 import { DoctorModel, type DoctorDocument } from "../doctors/doctor.model";
-import type { RegisterPatientInput, LoginPatientInput, LoginDoctorInput } from "./auth.schema";
+import { AdminModel, type AdminDocument } from "../admins/admin.model";
+import type {
+  RegisterPatientInput,
+  LoginPatientInput,
+  LoginDoctorInput,
+  LoginAdminInput,
+} from "./auth.schema";
 import { AppError } from "../../utils/app-error";
 
 const scrubPatient = (patient: any) => {
@@ -14,6 +20,12 @@ const scrubPatient = (patient: any) => {
 };
 
 const scrubDoctor = (doctor: any) => doctor.toObject({ versionKey: false });
+
+const scrubAdmin = (admin: AdminDocument) => {
+  const plain = admin.toObject({ versionKey: false });
+  delete plain.passwordHash;
+  return plain;
+};
 
 export const registerPatient = async (payload: RegisterPatientInput) => {
   const existingPatient = await PatientModel.findOne({
@@ -77,5 +89,27 @@ export const loginDoctor = async (payload: LoginDoctorInput) => {
 
   const token = signJwt({ sub: doctor.id, role: "doctor" });
   return { doctor: scrubDoctor(doctor), token };
+};
+
+export const loginAdmin = async (payload: LoginAdminInput) => {
+  const admin = await AdminModel.findOne({ email: payload.email });
+
+  if (!admin) {
+    throw AppError.from({
+      statusCode: StatusCodes.UNAUTHORIZED,
+      message: "Invalid credentials",
+    });
+  }
+
+  const isValid = await verifyPassword(payload.password, admin.passwordHash);
+  if (!isValid) {
+    throw AppError.from({
+      statusCode: StatusCodes.UNAUTHORIZED,
+      message: "Invalid credentials",
+    });
+  }
+
+  const token = signJwt({ sub: admin.id, role: "admin" });
+  return { admin: scrubAdmin(admin), token };
 };
 

@@ -1,9 +1,7 @@
-import { config } from "dotenv";
 import { z } from "zod";
+import { loadEnv } from "@illajwala/utils";
 
-config({ path: process.env.ENV_PATH ?? ".env" });
-
-const EnvSchema = z.object({
+const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
   MONGODB_URI: z
@@ -18,16 +16,11 @@ const EnvSchema = z.object({
   CLIENT_URL: z.string().url().optional(),
 });
 
-const parsed = EnvSchema.safeParse(process.env);
-
-if (!parsed.success) {
-  const errorMessages = parsed.error.issues
-    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-    .join("\n");
-  throw new Error(`Invalid environment configuration:\n${errorMessages}`);
-}
-
-const envData = parsed.data;
+const envData = loadEnv({
+  schema: envSchema,
+  runtimeEnv: process.env,
+  dotenv: process.env.ENV_PATH ? { path: process.env.ENV_PATH } : true,
+});
 
 if (
   envData.NODE_ENV === "production" &&

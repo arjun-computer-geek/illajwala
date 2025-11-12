@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@illajwala/types": "workspace:*",
     "axios": "^1.13.2"
   },
   "devDependencies": {

@@ -1,82 +1,40 @@
-export type ConsultationMode = "clinic" | "telehealth" | "home-visit";
+import {
+  appointmentStatusSchema,
+  consultationModeSchema,
+} from "@illajwala/types";
+import type {
+  ApiResponse,
+  Appointment,
+  AppointmentStatus,
+  BookAppointmentPayload,
+  ClinicLocation,
+  ConsultationMode,
+  Dependent,
+  Doctor,
+  DoctorAuthResponse,
+  LoginPatientInput,
+  PaginatedResponse,
+  PatientAuthResponse,
+  PatientProfile,
+  RegisterPatientInput,
+} from "@illajwala/types";
 
-export type ClinicLocation = {
-  name: string;
-  address?: string;
-  city?: string;
-  latitude?: number;
-  longitude?: number;
-};
+export { appointmentStatusSchema, consultationModeSchema };
 
-export type Doctor = {
-  _id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  specialization: string;
-  about?: string;
-  languages?: string[];
-  consultationModes?: ConsultationMode[];
-  fee?: number;
-  rating?: number;
-  totalReviews?: number;
-  clinicLocations?: ClinicLocation[];
-  experienceYears?: number;
-  profileImageUrl?: string;
-};
-
-export type Appointment = {
-  _id: string;
-  doctor: Doctor;
-  status: "pending" | "confirmed" | "completed" | "cancelled";
-  scheduledAt: string;
-  mode: ConsultationMode;
-  reasonForVisit?: string;
-  notes?: string;
-};
-
-export type Dependent = {
-  name: string;
-  relationship: string;
-  dateOfBirth?: string;
-  gender?: "male" | "female" | "other";
-};
-
-export type PatientProfile = {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  dateOfBirth?: string;
-  gender?: "male" | "female" | "other";
-  medicalHistory?: string[];
-  dependents: Dependent[];
-};
-
-export type ApiResponse<T> = {
-  data: T;
-  message?: string;
-};
-
-export type PaginatedResponse<T> = {
-  data: T[];
-  meta: {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-};
-
-export type PatientAuthResponse = {
-  token: string;
-  patient: PatientProfile;
-};
-
-export type DoctorAuthResponse = {
-  token: string;
-  doctor: Doctor;
-};
+export type {
+  ApiResponse,
+  Appointment,
+  AppointmentStatus,
+  BookAppointmentPayload,
+  ClinicLocation,
+  ConsultationMode,
+  Dependent,
+  Doctor,
+  DoctorAuthResponse,
+  PaginatedResponse,
+  PatientAuthResponse,
+  PatientProfile,
+} from "@illajwala/types";
 
 export type DoctorAvailabilitySlot = {
   start: string;
@@ -109,23 +67,6 @@ export type StatsOverview = {
   };
 };
 
-export type RegisterPatientPayload = {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-};
-
-export type LoginPatientPayload = {
-  email: string;
-  password: string;
-};
-
-export type BookAppointmentPayload = {
-  doctorId: string;
-  patientId: string;
-  scheduledAt: string;
-  mode: ConsultationMode;
-  reasonForVisit?: string;
-};
+export type RegisterPatientPayload = RegisterPatientInput;
+export type LoginPatientPayload = LoginPatientInput;
 

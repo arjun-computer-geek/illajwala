@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@illajwala/ui";
+import { useAdminAuth } from "../hooks/use-auth";
 
 const tasks = [
   {
@@ -22,6 +24,8 @@ const tasks = [
 ];
 
 export default function AdminHome() {
+  const { isAuthenticated, admin, clearAuth } = useAdminAuth();
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-brand-gradient px-6 py-24">
       <div className="mx-auto flex max-w-5xl flex-col gap-12 rounded-3xl bg-card p-12 text-center shadow-brand-card">
@@ -35,9 +39,7 @@ export default function AdminHome() {
             priority
           />
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-primary">
-              Platform Administration
-            </p>
+            <p className="text-sm uppercase tracking-[0.3em] text-primary">Platform Administration</p>
             <h1 className="mt-4 text-4xl font-semibold text-foreground sm:text-5xl">
               Keep every clinic trusted and operational
             </h1>
@@ -47,12 +49,24 @@ export default function AdminHome() {
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-            >
-              Admin sign in
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Button asChild className="rounded-full px-6 py-3">
+                  <Link href="/dashboard">Go to dashboard</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-full px-6 py-3"
+                  onClick={clearAuth}
+                >
+                  Sign out {admin ? `(${admin.email})` : ""}
+                </Button>
+              </>
+            ) : (
+              <Button asChild className="rounded-full px-6 py-3">
+                <Link href="/auth/login">Admin sign in</Link>
+              </Button>
+            )}
             <Link
               href="/checklists"
               className="inline-flex items-center justify-center rounded-full border border-border px-6 py-3 text-sm font-medium text-foreground transition hover:border-primary/60 hover:text-primary"

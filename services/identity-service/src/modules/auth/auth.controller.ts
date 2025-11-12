@@ -6,8 +6,9 @@ import type {
   RegisterPatientInput,
   LoginPatientInput,
   LoginDoctorInput,
+  LoginAdminInput,
 } from "./auth.schema";
-import { loginDoctor, loginPatient, registerPatient } from "./auth.service";
+import { loginAdmin, loginDoctor, loginPatient, registerPatient } from "./auth.service";
 
 export const handleRegisterPatient = catchAsync<
   Record<string, never>,
@@ -36,5 +37,14 @@ export const handleLoginDoctor = catchAsync<
 >(async (req: Request<Record<string, never>, unknown, LoginDoctorInput>, res: Response) => {
   const result = await loginDoctor(req.body);
   return res.json(successResponse(result, "Doctor logged in"));
+});
+
+export const handleLoginAdmin = catchAsync<
+  Record<string, never>,
+  unknown,
+  LoginAdminInput
+>(async (req: Request<Record<string, never>, unknown, LoginAdminInput>, res: Response) => {
+  const result = await loginAdmin(req.body);
+  return res.json(successResponse(result, "Admin logged in"));
 });
 

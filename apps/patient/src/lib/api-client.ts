@@ -1,17 +1,25 @@
-import axios from "axios";
+import { createApiClient } from "@illajwala/api-client";
 import { appConfig } from "./config";
 
-export const apiClient = axios.create({
+let authToken: string | null = null;
+let tenantId: string | null = null;
+
+export const apiClient = createApiClient({
   baseURL: appConfig.apiBaseUrl,
-  withCredentials: true,
+  getAuthToken: () => authToken,
+  getTenantId: () => tenantId,
+  onUnauthorized: () => {
+    console.warn("[api] Request unauthorized – clearing auth token");
+    authToken = null;
+  },
 });
 
 export const setAuthToken = (token: string | null) => {
-  if (token) {
-    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete apiClient.defaults.headers.common.Authorization;
-  }
+  authToken = token;
+};
+
+export const setTenantContext = (id: string | null) => {
+  tenantId = id;
 };
 
 apiClient.interceptors.response.use(
