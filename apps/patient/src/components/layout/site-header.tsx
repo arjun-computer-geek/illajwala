@@ -65,10 +65,10 @@ export const SiteHeader = () => {
     });
 
   return (
-    <header className="sticky top-0 z-40 bg-white/85 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.65)] shadow-primary/10 backdrop-blur-xl supports-backdrop-filter:bg-white/75 dark:bg-background/90 dark:shadow-[0_22px_48px_-32px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/20">
+    <header className="sticky top-0 z-40 border-b border-border/50 bg-white/80 backdrop-blur-xl supports-backdrop-filter:bg-white/70 dark:border-border/40 dark:bg-background/80">
       <Container className="flex h-16 items-center justify-between gap-4">
         <Link href="/" className="group flex items-center gap-3">
-          <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-[0_16px_36px_-20px_rgba(8,47,73,0.55)] transition-all group-hover:scale-[1.03] dark:bg-card dark:shadow-[0_18px_42px_-22px_rgba(10,20,35,0.75)] dark:ring-1 dark:ring-primary/25">
+          <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-[1.2rem] bg-white shadow-[0_12px_28px_-18px_rgba(32,113,182,0.32)] transition-transform duration-200 group-hover:-translate-y-0.5 dark:bg-background/70">
             <Image
               src="/logo.png"
               alt="illajwala logo"
@@ -95,7 +95,7 @@ export const SiteHeader = () => {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-full px-4 py-2">
+                <Button variant="outline" size="sm" className="gap-2 px-4">
                   <UserRound className="h-4 w-4" />
                   {role === "doctor" ? "Doctor portal" : "My account"}
                 </Button>
@@ -118,10 +118,10 @@ export const SiteHeader = () => {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="outline" size="sm" className="rounded-full px-5 py-2" asChild>
+              <Button variant="ghost" size="sm" className="px-4" asChild>
                 <Link href="/auth/patient/login">Sign in</Link>
               </Button>
-              <Button variant="brand" size="sm" className="rounded-full px-5 py-2" asChild>
+              <Button variant="default" size="sm" className="px-5" asChild>
                 <Link href="/auth/patient/register">Create account</Link>
               </Button>
             </>
@@ -132,7 +132,7 @@ export const SiteHeader = () => {
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="rounded-full">
+              <Button variant="outline" size="icon">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

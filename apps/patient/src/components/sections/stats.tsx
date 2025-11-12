@@ -60,20 +60,20 @@ export const StatsSection = () => {
   );
 
   return (
-    <section className="relative overflow-hidden bg-[hsl(var(--primary))] text-white dark:bg-[hsl(var(--brand-hero-from))] dark:text-foreground">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--brand-cta))/0.35,transparent_55%)] dark:bg-[radial-gradient(circle_at_bottom_left,hsl(var(--primary))/0.22,transparent_55%)]" />
-      <Container className="py-16">
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,hsl(var(--brand-hero-from))_0%,hsl(var(--brand-hero-to))_100%)] text-white dark:bg-[linear-gradient(135deg,hsl(var(--brand-hero-from))_0%,hsl(var(--brand-hero-to))_80%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25)_0%,transparent_55%)]" />
+      <Container className="relative z-10 py-20">
         {isError ? (
           <div className="flex flex-col items-center justify-center gap-4 text-center">
-            <p className="text-sm font-medium uppercase tracking-[0.28em] text-white/75 dark:text-muted-foreground">
+            <p className="text-sm font-medium uppercase tracking-[0.28em] text-white/80">
               Unable to load live stats
             </p>
-            <Button variant="secondary" className="rounded-full px-5" onClick={() => refetch()}>
+            <Button variant="outline" className="border-white/50 bg-white/10 px-6 text-white hover:bg-white/20" onClick={() => refetch()}>
               Retry
             </Button>
           </div>
         ) : (
-          <div className="grid gap-10 text-center md:grid-cols-4 md:text-left">
+          <div className="grid gap-8 md:grid-cols-4">
             {stats.map((stat) => (
               <StatCard
                 key={stat.label}
@@ -91,15 +91,15 @@ export const StatsSection = () => {
 
 const StatCard = ({ value, label, loading }: { value: string | null; label: string; loading: boolean }) => {
   return (
-    <div className="space-y-2">
+    <div className="rounded-[1.2rem] border border-white/25 bg-white/10 p-6 text-center backdrop-blur-sm md:text-left">
       {loading ? (
-        <Skeleton className="h-10 w-32 rounded-full bg-white/20 dark:bg-muted/50" />
+        <Skeleton className="h-10 w-32 rounded-full bg-white/35" />
       ) : (
-        <div className="text-4xl font-semibold tracking-tight drop-shadow-sm">
+        <div className="text-4xl font-semibold tracking-tight">
           {value ?? "—"}
         </div>
       )}
-      <div className="text-sm font-medium uppercase tracking-[0.28em] text-white/80 dark:text-muted-foreground">
+      <div className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-white/80">
         {label}
       </div>
     </div>

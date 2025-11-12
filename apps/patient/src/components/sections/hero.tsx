@@ -122,26 +122,26 @@ export const HeroSection = () => {
   }, [specialtiesCount, supportedModesKey, totalFeatured]);
 
   return (
-    <section className="relative overflow-hidden bg-[hsl(var(--background))] pb-32 pt-24 dark:bg-[hsl(var(--background))]">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,hsl(var(--brand-hero-to))/0.55,transparent_55%)]" />
-      <div className="absolute inset-x-0 top-0 -z-10 h-[520px] bg-[linear-gradient(130deg,hsl(var(--brand-hero-from))/0.9_0%,hsl(var(--brand-hero-to))/0.4_55%,transparent_100%)] dark:bg-[linear-gradient(130deg,hsl(var(--brand-hero-from))/0.6,hsl(var(--background))/0.9)]" />
-      <Container className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-        <div className="space-y-8 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-primary shadow-[0_18px_45px_-28px_rgba(8,47,73,0.65)] backdrop-blur-md dark:bg-card/80 dark:text-primary-foreground">
-            <CalendarHeart className="h-4 w-4 text-primary" />
-            Book clinic, telehealth, or home visits in minutes
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#F3FAFC_0%,#E5F6F6_55%,rgba(32,113,182,0.12)_100%)] pb-28 pt-24 dark:bg-[linear-gradient(135deg,rgba(10,28,36,0.95)_0%,rgba(12,32,45,0.9)_50%,rgba(16,52,70,0.85)_100%)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(28,164,163,0.35),transparent_55%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(48,214,200,0.25),transparent_55%)]" />
+      <Container className="grid gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="space-y-10 text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-5 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary shadow-[0_14px_32px_-22px_rgba(32,113,182,0.35)] backdrop-blur-sm dark:bg-background/60">
+            <CalendarHeart className="h-4 w-4" />
+            Care without waiting
           </div>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-foreground md:text-[3.35rem] md:leading-[1.1]">
-            Find &amp; book the{" "}
-            <span className="bg-linear-to-r from-[hsl(var(--brand-cta))] to-[hsl(var(--brand-cta-hover))] bg-clip-text text-transparent">
-              right doctor
-            </span>{" "}
-            near you.
-          </h1>
-          <p className="text-lg leading-relaxed text-foreground/70 md:text-xl">
-            Compare trusted specialists, read real patient stories, and secure the earliest slot
-            that fits your schedule—all in one place.
-          </p>
+          <div className="space-y-6">
+            <h1 className="text-4xl font-semibold leading-tight text-foreground md:text-[3.2rem] md:leading-[1.05]">
+              Book trusted doctors with{" "}
+              <span className="bg-[linear-gradient(135deg,#1CA4A3_0%,#2071B6_100%)] bg-clip-text text-transparent">
+                calm confidence
+              </span>
+            </h1>
+            <p className="text-lg leading-relaxed text-muted-foreground md:text-xl md:leading-[1.6]">
+              Compare availability, read real patient stories, and reserve the earliest visit that
+              fits your life—whether it&apos;s in-clinic, virtual, or at home.
+            </p>
+          </div>
 
           <QuickSearch
             specialties={specialties}
@@ -149,21 +149,21 @@ export const HeroSection = () => {
             onSearch={() => router.push("/search")}
           />
 
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-foreground/70 lg:justify-start">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-muted-foreground lg:justify-start">
             {highlightPills.map((pill) => (
-              <StatPill key={pill} indicator="bg-primary" label={pill} />
+              <StatPill key={pill} label={pill} />
             ))}
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-lg rounded-4xl bg-white/95 p-6 shadow-2xl shadow-primary/20 backdrop-blur-xl dark:bg-card/90 dark:shadow-[0_30px_65px_-32px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/20">
-          <div className="rounded-[1.75rem] bg-linear-to-br from-primary/10 via-primary/5 to-white p-4 shadow-inner shadow-primary/10 dark:from-primary/15 dark:via-primary/10 dark:to-card dark:ring-1 dark:ring-primary/25">
+        <div className="relative mx-auto w-full max-w-lg rounded-[1.6rem] bg-white/80 p-6 shadow-[0_34px_80px_-32px_rgba(32,113,182,0.35)] backdrop-blur-xl ring-1 ring-border/60 dark:bg-background/80 dark:ring-border/50">
+          <div className="rounded-[1.4rem] bg-[linear-gradient(160deg,rgba(28,164,163,0.16)_0%,rgba(32,113,182,0.12)_100%)] p-4">
             <Image
               src="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80"
               alt="Doctor consulting patient"
               width={640}
               height={760}
-              className="h-[420px] w-full rounded-3xl object-cover"
+              className="h-[420px] w-full rounded-[1.2rem] object-cover"
               priority
             />
           </div>
@@ -190,10 +190,10 @@ const QuickSearch = ({
   const popular = specialties.slice(0, 4);
 
   return (
-    <div className="rounded-3xl bg-white/95 p-6 shadow-xl shadow-primary/15 backdrop-blur-xl dark:bg-card/90 dark:shadow-[0_26px_58px_-30px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/25">
-      <div className="grid gap-4 md:grid-cols-[1.25fr_1.25fr_auto]">
+    <div className="rounded-[1.4rem] bg-white/85 p-6 shadow-[0_26px_60px_-28px_rgba(32,113,182,0.28)] backdrop-blur-xl ring-1 ring-border/60 dark:bg-background/70 dark:ring-border/40">
+      <div className="grid gap-4 md:grid-cols-[1.15fr_1.15fr_auto]">
         <Select defaultValue="all" disabled={loading || specialties.length === 0}>
-          <SelectTrigger className="h-14 rounded-2xl text-left text-base font-medium shadow-md shadow-primary/10 transition hover:shadow-lg focus-visible:ring-primary/25 dark:ring-1 dark:ring-primary/25">
+          <SelectTrigger className="h-12 rounded-[1.2rem] border border-border/60 bg-white/80 text-left text-base font-medium text-foreground shadow-[0_12px_30px_-24px_rgba(32,113,182,0.35)] transition-colors duration-200 ease-out hover:border-ring focus-visible:border-primary focus-visible:ring-0 dark:border-border/40 dark:bg-background/60">
             <SelectValue placeholder={loading ? "Loading specialties..." : "Select specialty"} />
           </SelectTrigger>
           <SelectContent>
@@ -208,20 +208,20 @@ const QuickSearch = ({
         <div className="relative">
           <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="h-14 rounded-2xl bg-white pl-12 text-base font-medium shadow-md shadow-primary/10 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary/25 dark:bg-background/80 dark:ring-1 dark:ring-primary/25"
+            className="h-12 rounded-[1.2rem] border border-border/60 bg-white/80 pl-12 text-base font-medium shadow-[0_12px_30px_-24px_rgba(32,113,182,0.35)] dark:border-border/40 dark:bg-background/60 dark:shadow-none"
             placeholder="City, clinic or neighbourhood"
           />
         </div>
         <Button
-          className="flex h-14 items-center gap-2 rounded-2xl px-6 text-base shadow-brand-card"
+          className="flex h-12 items-center gap-2 px-6 text-base"
           onClick={onSearch}
         >
           <Search className="h-5 w-5" />
           Search
         </Button>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-        <span className="font-semibold uppercase tracking-[0.25em] text-muted-foreground/80">
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.26em] text-muted-foreground">
+        <span className="text-muted-foreground/70">
           Popular
         </span>
         {loading ? (
@@ -229,8 +229,8 @@ const QuickSearch = ({
             <Skeleton key={index} className="h-7 w-28 rounded-full" />
           ))
         ) : popular.length === 0 ? (
-          <span className="text-xs uppercase tracking-wide text-muted-foreground/70">
-            Doctors are updating availability
+          <span className="text-[0.65rem] uppercase tracking-[0.35em] text-muted-foreground/60">
+            Updating
           </span>
         ) : (
           popular.map((label) => <LinkChip key={label} label={label} />)
@@ -252,20 +252,20 @@ const HeroAvailabilityCard = ({
   const slot = getSlotDisplay(availability?.nextAvailableSlot ?? null);
 
   return (
-    <div className="absolute -bottom-12 left-1/2 w-[88%] -translate-x-1/2 rounded-2xl bg-white/95 p-5 shadow-[0_28px_60px_-28px_rgba(8,47,73,0.7)] shadow-primary/25 backdrop-blur-xl dark:bg-card/95 dark:shadow-[0_32px_68px_-30px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/25">
+    <div className="absolute -bottom-12 left-1/2 w-[88%] -translate-x-1/2 rounded-[1.2rem] border border-border/60 bg-white/90 p-5 shadow-[0_24px_52px_-24px_rgba(32,113,182,0.32)] backdrop-blur-xl dark:border-border/40 dark:bg-background/85 dark:shadow-none">
       {loading ? (
         <div className="flex items-center justify-between gap-6">
           <div className="space-y-2">
-            <Skeleton className="h-3 w-24 rounded-full" />
-            <Skeleton className="h-6 w-40 rounded-full" />
-            <Skeleton className="h-3 w-32 rounded-full" />
+            <Skeleton className="h-3 w-24 rounded-full bg-muted" />
+            <Skeleton className="h-6 w-40 rounded-full bg-muted" />
+            <Skeleton className="h-3 w-32 rounded-full bg-muted" />
           </div>
-          <Skeleton className="h-10 w-28 rounded-full" />
+          <Skeleton className="h-10 w-28 rounded-full bg-muted" />
         </div>
       ) : doctor && slot ? (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground/80">
               Next available
             </div>
             <div className="text-lg font-semibold text-foreground">
@@ -275,21 +275,21 @@ const HeroAvailabilityCard = ({
               {doctor.name} · {doctor.specialization}
             </p>
           </div>
-          <Button size="sm" className="rounded-full px-5 py-2" asChild>
+          <Button size="sm" className="px-5" asChild>
             <Link href={`/doctors/${doctor._id}`}>View slots</Link>
           </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            <div className="text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground/80">
               Featured doctors
             </div>
             <p className="text-sm text-muted-foreground">
               Availability updates will appear as doctors publish their schedules.
             </p>
           </div>
-          <Button size="sm" className="rounded-full px-5 py-2" asChild>
+          <Button size="sm" className="px-5" asChild>
             <Link href="/search">Discover doctors</Link>
           </Button>
         </div>
@@ -301,15 +301,14 @@ const HeroAvailabilityCard = ({
 const LinkChip = ({ label }: { label: string }) => (
   <Link
     href={`/search?specialization=${encodeURIComponent(label)}`}
-    className="rounded-full bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-[0_14px_36px_-28px_rgba(8,47,73,0.65)] transition-all hover:bg-primary/10 hover:text-primary dark:bg-card/80 dark:text-muted-foreground/90 dark:ring-1 dark:ring-primary/20"
+    className="rounded-full border border-border/50 bg-white/70 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground transition-colors duration-200 ease-out hover:border-primary/60 hover:bg-accent/70 hover:text-primary dark:bg-background/60"
   >
     {label}
   </Link>
 );
 
-const StatPill = ({ indicator, label }: { indicator: string; label: string }) => (
-  <span className="flex items-center gap-2 rounded-full bg-white/75 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-[0_16px_38px_-32px_rgba(8,47,73,0.65)] backdrop-blur-md dark:bg-background/70 dark:text-muted-foreground/90 dark:ring-1 dark:ring-primary/20">
-    <span className={`h-2 w-2 rounded-full ${indicator}`} />
+const StatPill = ({ label }: { label: string }) => (
+  <span className="rounded-full border border-border/60 bg-white/70 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground shadow-[0_12px_28px_-24px_rgba(32,113,182,0.3)] backdrop-blur-sm dark:border-border/40 dark:bg-background/60">
     {label}
   </span>
 );

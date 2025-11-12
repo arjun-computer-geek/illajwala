@@ -11,7 +11,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       data-slot="card"
       className={cn(
-        "bg-card/95 text-card-foreground flex flex-col gap-6 rounded-2xl py-6 shadow-lg shadow-primary/10 ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-brand-card dark:ring-primary/20",
+        "bg-card/95 text-card-foreground flex flex-col gap-6 rounded-[1.2rem] py-7 shadow-[0_18px_38px_-24px_hsl(var(--primary)/0.35)] ring-1 ring-border/60 transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-20px_hsl(var(--primary)/0.35)] dark:bg-card/90 dark:ring-border/40",
         className
       )}
       {...props}

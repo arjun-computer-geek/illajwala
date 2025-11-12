@@ -15,9 +15,9 @@ type DoctorCardProps = {
 export const DoctorCard = ({ doctor, ctaLabel = "Book appointment", href }: DoctorCardProps) => {
   const targetHref = href ?? `/doctors/${doctor._id}`;
   return (
-    <Card className="group flex h-full flex-col justify-between bg-white/90 p-2 transition transform duration-200 hover:-translate-y-1 dark:bg-background/95">
+    <Card className="group flex h-full flex-col justify-between border border-border/50 bg-white/80 p-2 shadow-[0_22px_50px_-26px_rgba(32,113,182,0.28)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_26px_56px_-22px_rgba(32,113,182,0.32)] dark:border-border/40 dark:bg-background/80">
       <CardHeader className="space-y-4 text-center">
-        <div className="mx-auto h-24 w-24 overflow-hidden rounded-2xl bg-primary/10 shadow-[0_18px_42px_-24px_rgba(8,47,73,0.55)]">
+        <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-accent/70 shadow-[0_18px_42px_-28px_rgba(32,113,182,0.4)]">
           <Image
             src={doctor.profileImageUrl ?? `https://avatar.vercel.sh/${doctor.name}.png`}
             alt={doctor.name}
@@ -28,7 +28,7 @@ export const DoctorCard = ({ doctor, ctaLabel = "Book appointment", href }: Doct
         </div>
         <div>
           <CardTitle className="text-xl font-semibold text-foreground">{doctor.name}</CardTitle>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary">
             {doctor.specialization}
           </p>
         </div>
@@ -51,7 +51,7 @@ export const DoctorCard = ({ doctor, ctaLabel = "Book appointment", href }: Doct
           </Badge>
         )}
         <Link href={targetHref} className="block">
-          <Button className="w-full rounded-full">{ctaLabel}</Button>
+          <Button className="w-full">{ctaLabel}</Button>
         </Link>
       </CardContent>
     </Card>

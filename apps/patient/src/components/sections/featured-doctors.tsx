@@ -26,18 +26,18 @@ export const FeaturedDoctorsSection = () => {
   const doctors: Doctor[] = useMemo(() => data?.data ?? [], [data?.data]);
 
   return (
-    <section className="bg-[hsl(var(--background))] py-24 dark:bg-[hsl(var(--background))]">
+    <section className="bg-[hsl(var(--background))] py-24">
       <Container>
-        <div className="text-center">
-          <span className="text-xs font-semibold uppercase tracking-[0.35em] text-primary">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
             Patient favourites
           </span>
-          <h2 className="mt-4 text-3xl font-bold text-foreground md:text-[2.5rem] md:leading-tight">
+          <h2 className="mt-4 text-3xl font-semibold text-foreground md:text-[2.5rem] md:leading-tight">
             Top-rated specialists near you
           </h2>
           <p className="mt-4 text-base text-muted-foreground md:text-lg">
-            High-satisfaction doctors with proven track records, curated for the most sought-after
-            specialties.
+            High-satisfaction doctors curated across specialities so you can choose care that fits
+            your expectations.
           </p>
         </div>
 
@@ -55,7 +55,7 @@ export const FeaturedDoctorsSection = () => {
 
         <div className="mt-14 text-center">
           <Link href="/search">
-            <Button size="lg" className="rounded-full px-8 py-6 text-base">
+            <Button size="lg" className="px-10 text-base">
               Browse all doctors
             </Button>
           </Link>
@@ -66,35 +66,35 @@ export const FeaturedDoctorsSection = () => {
 };
 
 const DoctorCardSkeleton = () => (
-  <div className="flex h-full flex-col justify-between rounded-3xl bg-white/80 p-8 shadow-lg shadow-primary/10 transition-transform duration-200 dark:bg-background/80">
+  <div className="flex h-full flex-col justify-between rounded-[1.2rem] border border-border/40 bg-white/75 p-8 shadow-[0_18px_40px_-26px_rgba(32,113,182,0.28)] dark:border-border/30 dark:bg-background/70">
     <div className="mx-auto h-24 w-24">
-      <Skeleton className="h-full w-full rounded-2xl" />
+      <Skeleton className="h-full w-full rounded-2xl bg-muted" />
     </div>
-    <Skeleton className="mx-auto mt-6 h-6 w-40 rounded-full" />
-    <Skeleton className="mx-auto h-4 w-28 rounded-full" />
+    <Skeleton className="mx-auto mt-6 h-6 w-40 rounded-full bg-muted" />
+    <Skeleton className="mx-auto h-4 w-28 rounded-full bg-muted" />
     <div className="mt-6 space-y-4 text-center">
-      <Skeleton className="mx-auto h-4 w-32 rounded-full" />
-      <Skeleton className="mx-auto h-4 w-48 rounded-full" />
-      <Skeleton className="mx-auto h-8 w-36 rounded-full" />
-      <Skeleton className="mx-auto h-12 w-full rounded-full" />
+      <Skeleton className="mx-auto h-4 w-32 rounded-full bg-muted" />
+      <Skeleton className="mx-auto h-4 w-48 rounded-full bg-muted" />
+      <Skeleton className="mx-auto h-8 w-36 rounded-full bg-muted" />
+      <Skeleton className="mx-auto h-12 w-full rounded-full bg-muted" />
     </div>
   </div>
 );
 
 const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
-  <div className="col-span-full rounded-3xl bg-destructive/5 p-10 text-center shadow-[0_20px_48px_-28px_rgba(220,38,38,0.45)] dark:bg-destructive/10 dark:shadow-[0_26px_58px_-30px_rgba(248,113,113,0.35)] dark:ring-1 dark:ring-destructive/40">
+  <div className="col-span-full rounded-[1.2rem] border border-destructive/20 bg-destructive/10 p-10 text-center shadow-[0_20px_48px_-30px_rgba(245,108,108,0.4)] dark:border-destructive/35 dark:bg-destructive/20">
     <h3 className="text-lg font-semibold text-destructive">We couldn&apos;t load featured doctors</h3>
     <p className="mt-2 text-sm text-muted-foreground">
       Please check your connection and try again.
     </p>
-    <Button variant="secondary" className="mt-5 rounded-full px-6" onClick={onRetry}>
+    <Button variant="outline" className="mt-5 px-6" onClick={onRetry}>
       Retry
     </Button>
   </div>
 );
 
 const EmptyState = () => (
-  <div className="col-span-full rounded-3xl bg-white/90 p-12 text-center shadow-xl shadow-primary/10 dark:bg-card/90 dark:shadow-[0_30px_65px_-30px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/20">
+  <div className="col-span-full rounded-[1.2rem] border border-border/50 bg-white/85 p-12 text-center shadow-[0_24px_56px_-30px_rgba(32,113,182,0.32)] dark:border-border/40 dark:bg-background/75">
     <h3 className="text-lg font-semibold text-foreground">Featured doctors coming soon</h3>
     <p className="mt-3 text-sm text-muted-foreground">
       We&apos;re curating the top-rated specialists right now. Browse the directory to discover more

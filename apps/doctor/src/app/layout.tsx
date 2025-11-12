@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { TenantBootstrapper } from "../components/tenant-bootstrapper";
+
+const inter = Inter({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={`${inter.variable} antialiased`}>
         <div className="min-h-screen bg-background text-foreground">
           <TenantBootstrapper />
           {children}
