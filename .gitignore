@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+illajwala-patient_old_unfinished_code/
+# Build artifacts
+.next/
+out/
+dist/
+coverage/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Misc
+*.local
+*.log
+

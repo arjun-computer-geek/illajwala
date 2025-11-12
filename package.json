@@ -1,0 +1,30 @@
+{
+  "name": "illajwala",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*",
+    "infra/*"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:patient": "pnpm --filter @illajwala/patient dev",
+    "dev:identity": "pnpm --filter @illajwala/identity-service dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --cache --check .",
+    "format:write": "prettier --cache --write .",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rimraf dist .next"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3"
+  }
+}
+

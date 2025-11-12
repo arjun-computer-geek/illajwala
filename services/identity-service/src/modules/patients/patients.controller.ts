@@ -1,0 +1,75 @@
+import type { Response } from "express";
+import { StatusCodes } from "http-status-codes";
+import type { AuthenticatedRequest } from "../../middlewares/auth";
+import { successResponse } from "../../utils/api-response";
+import { catchAsync } from "../../utils/catch-async";
+import { AppError } from "../../utils/app-error";
+import type { AddDependentInput, UpdatePatientInput } from "./patient.schema";
+import {
+  addDependent,
+  getPatientById,
+  removeDependent,
+  updatePatientProfile,
+} from "./patient.service";
+
+export const handleGetProfile = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+  }
+
+  const patient = await getPatientById(req.user.id);
+  if (!patient) {
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Patient not found" });
+  }
+
+  return res.json(successResponse(patient));
+});
+
+export const handleUpdateProfile = catchAsync<
+  Record<string, never>,
+  unknown,
+  UpdatePatientInput
+>(async (req: AuthenticatedRequest<Record<string, never>, unknown, UpdatePatientInput>, res: Response) => {
+  if (!req.user) {
+    throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+  }
+
+  const patient = await updatePatientProfile(req.user.id, req.body);
+  if (!patient) {
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Patient not found" });
+  }
+
+  return res.json(successResponse(patient, "Profile updated"));
+});
+
+export const handleAddDependent = catchAsync<
+  Record<string, never>,
+  unknown,
+  AddDependentInput
+>(async (req: AuthenticatedRequest<Record<string, never>, unknown, AddDependentInput>, res: Response) => {
+  if (!req.user) {
+    throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+  }
+
+  const patient = await addDependent(req.user.id, req.body);
+  return res.status(StatusCodes.CREATED).json(successResponse(patient, "Dependent added"));
+});
+
+export const handleRemoveDependent = catchAsync<{ name: string }>(
+  async (req: AuthenticatedRequest<{ name: string }>, res: Response) => {
+    if (!req.user) {
+      throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+    }
+
+    const { name } = req.params;
+
+    if (!name) {
+      throw AppError.from({ statusCode: StatusCodes.BAD_REQUEST, message: "Dependent name is required" });
+    }
+
+    const patient = await removeDependent(req.user.id, name);
+
+    return res.json(successResponse(patient, "Dependent removed"));
+  }
+);
+
