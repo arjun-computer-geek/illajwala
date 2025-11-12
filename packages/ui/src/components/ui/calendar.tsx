@@ -1,25 +1,16 @@
-"use client";
-
-import * as React from "react";
+'use client'
+import * as React from "react"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-} from "lucide-react";
-import {
-  DayButton,
-  DayPicker,
-  getDefaultClassNames,
-  type DayPickerProps,
-} from "react-day-picker";
-import { cn } from "./lib/cn";
-import { Button, buttonVariants } from "./button";
+} from "lucide-react"
+import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
-export type CalendarProps = DayPickerProps & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
-};
+import { cn } from "@ui/lib/utils"
+import { Button, buttonVariants } from "@ui/components/ui/button"
 
-export const Calendar = ({
+function Calendar({
   className,
   classNames,
   showOutsideDays = true,
@@ -28,16 +19,18 @@ export const Calendar = ({
   formatters,
   components,
   ...props
-}: CalendarProps) => {
-  const defaultClassNames = getDefaultClassNames();
+}: React.ComponentProps<typeof DayPicker> & {
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+}) {
+  const defaultClassNames = getDefaultClassNames()
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button_previous>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
       )}
       captionLayout={captionLayout}
@@ -76,7 +69,7 @@ export const Calendar = ({
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
-          "relative rounded-md border border-transparent shadow-sm shadow-primary/10 has-focus:ring-ring/50 has-focus:ring-[3px]",
+          "relative has-focus:border-ring border border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] rounded-md",
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(
@@ -134,60 +127,65 @@ export const Calendar = ({
         ...classNames,
       }}
       components={{
-        Root: ({ className, rootRef, ...rest }) => (
-          <div
-            data-slot="calendar"
-            ref={rootRef}
-            className={cn(className)}
-            {...rest}
-          />
-        ),
-        Chevron: ({ className, orientation, ...rest }) => {
+        Root: ({ className, rootRef, ...props }) => {
+          return (
+            <div
+              data-slot="calendar"
+              ref={rootRef}
+              className={cn(className)}
+              {...props}
+            />
+          )
+        },
+        Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...rest} />
-            );
+              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
+            )
           }
+
           if (orientation === "right") {
             return (
-              <ChevronRightIcon className={cn("size-4", className)} {...rest} />
-            );
+              <ChevronRightIcon
+                className={cn("size-4", className)}
+                {...props}
+              />
+            )
           }
+
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...rest} />
-          );
+            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+          )
         },
         DayButton: CalendarDayButton,
-        WeekNumber: ({ children, ...rest }) => (
-          <td {...rest}>
-            <div className="flex size-(--cell-size) items-center justify-center text-center">
-              {children}
-            </div>
-          </td>
-        ),
+        WeekNumber: ({ children, ...props }) => {
+          return (
+            <td {...props}>
+              <div className="flex size-(--cell-size) items-center justify-center text-center">
+                {children}
+              </div>
+            </td>
+          )
+        },
         ...components,
       }}
       {...props}
     />
-  );
-};
+  )
+}
 
-export type CalendarDayButtonProps = React.ComponentProps<typeof DayButton>;
-
-export const CalendarDayButton = ({
+function CalendarDayButton({
   className,
   day,
   modifiers,
   ...props
-}: CalendarDayButtonProps) => {
-  const defaultClassNames = getDefaultClassNames();
-  const ref = React.useRef<HTMLButtonElement>(null);
+}: React.ComponentProps<typeof DayButton>) {
+  const defaultClassNames = getDefaultClassNames()
 
+  const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
-    if (modifiers.focused) {
-      ref.current?.focus();
-    }
-  }, [modifiers.focused]);
+    if (modifiers.focused) ref.current?.focus()
+  }, [modifiers.focused])
 
   return (
     <Button
@@ -211,6 +209,7 @@ export const CalendarDayButton = ({
       )}
       {...props}
     />
-  );
-};
+  )
+}
 
+export { Calendar, CalendarDayButton }
