@@ -13,20 +13,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
-const statusVariantMap: Record<string, "secondary" | "default" | "outline" | "destructive"> = {
-  pending: "outline",
+// Map backend statuses to badge variants. New consultation states added in Sprint 3
+// default to outline until we introduce richer styling.
+const statusVariantMap: Record<Appointment["status"], "secondary" | "default" | "outline" | "destructive"> = {
   "pending-payment": "outline",
   confirmed: "secondary",
+  "checked-in": "secondary",
+  "in-session": "secondary",
   completed: "default",
   cancelled: "destructive",
+  "no-show": "destructive",
 };
 
 const formatStatus = (status: Appointment["status"]) => {
   switch (status) {
     case "pending-payment":
       return "Pending payment";
-    case "pending":
-      return "Pending";
+    case "checked-in":
+      return "Checked in";
+    case "in-session":
+      return "In session";
+    case "no-show":
+      return "No show";
     default:
       return status.charAt(0).toUpperCase() + status.slice(1);
   }
@@ -42,6 +50,7 @@ export const AppointmentsList = () => {
     staleTime: 60_000,
   });
 
+  // Keep memo to avoid re-render loops when the query refetches in the background.
   const appointments: Appointment[] = useMemo(() => data?.data ?? [], [data]);
 
   if (!hydrated) {
@@ -124,6 +133,12 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
   const isTelehealth = appointment.mode === "telehealth";
   const formattedDate = format(new Date(appointment.scheduledAt), "EEE, dd MMM yyyy");
   const formattedTime = format(new Date(appointment.scheduledAt), "hh:mm a");
+  const consultation = appointment.consultation;
+
+  const showJoinButton =
+    appointment.status === "confirmed" ||
+    appointment.status === "checked-in" ||
+    appointment.status === "in-session";
 
   return (
     <div className="flex flex-col gap-5 rounded-3xl bg-white/95 p-6 shadow-xl shadow-primary/10 transition duration-200 hover:-translate-y-1 hover:shadow-brand-card dark:bg-card/90 dark:shadow-[0_30px_65px_-30px_rgba(2,6,23,0.85)] dark:ring-1 dark:ring-primary/20 md:flex-row md:items-center md:justify-between">
@@ -161,12 +176,28 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
             Reason: {appointment.reasonForVisit}
           </p>
         )}
-      {appointment.payment && (
-        <p className="text-xs text-muted-foreground/80">
-          Payment status: <span className="font-medium text-foreground">{appointment.payment.status}</span>
-          {appointment.payment.receipt ? ` • Receipt ${appointment.payment.receipt}` : ""}
-        </p>
-      )}
+        {appointment.payment && (
+          <p className="text-xs text-muted-foreground/80">
+            Payment status: <span className="font-medium text-foreground">{appointment.payment.status}</span>
+            {appointment.payment.receipt ? ` • Receipt ${appointment.payment.receipt}` : ""}
+          </p>
+        )}
+        {consultation?.followUpActions && consultation.followUpActions.length > 0 && (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-muted/30 p-3">
+            <p className="text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">Next steps</p>
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground/90">
+              {consultation.followUpActions.map((action) => (
+                <li key={action}>• {action}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {consultation?.notes && appointment.status === "completed" && (
+          <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground/90">
+            <p className="font-medium text-foreground">Visit summary</p>
+            <p className="mt-1 whitespace-pre-wrap">{consultation.notes}</p>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-3 md:flex-row">
         <Button variant="outline" className="rounded-full px-6" disabled>
@@ -175,6 +206,10 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
         {appointment.status === "pending-payment" ? (
           <Button variant="secondary" className="rounded-full px-6" disabled>
             Complete payment (coming soon)
+          </Button>
+        ) : showJoinButton ? (
+          <Button variant="secondary" className="rounded-full px-6" disabled>
+            Join telehealth (soon)
           </Button>
         ) : (
           <Button variant="secondary" className="rounded-full px-6" disabled>

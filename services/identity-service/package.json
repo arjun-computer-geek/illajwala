@@ -16,6 +16,7 @@
   "dependencies": {
     "@illajwala/types": "workspace:*",
     "@illajwala/utils": "workspace:*",
+    "bullmq": "^5.36.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

@@ -7,9 +7,17 @@ import type {
 } from "@illajwala/types";
 import { adminApiClient } from "../api-client";
 
+// Sprint 3: doctors can attach consultation metadata. Keep the payload flexible
+// so the doctor workspace can supply partial updates when editing notes/vitals.
 export type UpdateAppointmentStatusPayload = {
   status: AppointmentStatus;
   notes?: string;
+  consultation?: {
+    startedAt?: string;
+    endedAt?: string;
+    notes?: string;
+    followUpActions?: string[];
+  };
 };
 
 export type UpdateAppointmentPaymentPayload = {

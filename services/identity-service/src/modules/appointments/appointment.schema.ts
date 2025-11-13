@@ -9,8 +9,39 @@ export const createAppointmentSchema = z.object({
 });
 
 export const updateAppointmentStatusSchema = z.object({
-  status: z.enum(["pending-payment", "confirmed", "completed", "cancelled"]),
+  status: z.enum(["pending-payment", "confirmed", "checked-in", "in-session", "completed", "cancelled", "no-show"]),
   notes: z.string().max(1000).optional(),
+  // Consultation metadata is optional so that simple status updates continue to
+  // work without providing the full payload. Individual fields are validated to
+  // keep the visit workspace consistent across clients.
+  consultation: z
+    .object({
+      startedAt: z.coerce.date().optional(),
+      endedAt: z.coerce.date().optional(),
+      notes: z.string().max(5000).optional(),
+      followUpActions: z.array(z.string().max(500)).optional(),
+      vitals: z
+        .array(
+          z.object({
+            label: z.string().min(1).max(100),
+            value: z.string().min(1).max(100),
+            unit: z.string().max(50).optional(),
+          })
+        )
+        .optional(),
+      attachments: z
+        .array(
+          z.object({
+            key: z.string().min(1),
+            name: z.string().min(1),
+            url: z.string().url().optional(),
+            contentType: z.string().max(120).optional(),
+            sizeInBytes: z.number().int().nonnegative().optional(),
+          })
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 export const confirmAppointmentPaymentSchema = z.object({

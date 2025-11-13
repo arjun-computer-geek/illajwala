@@ -14,6 +14,8 @@ export const appointmentsApi = {
     return response.data.data;
   },
   list: async (params?: Record<string, unknown>) => {
+    // Patients currently fetch a single page of appointments; pagination will
+    // be extended once historical visits are exposed.
     const response = await apiClient.get<PaginatedResponse<Appointment>>("/appointments", { params });
     return response.data;
   },

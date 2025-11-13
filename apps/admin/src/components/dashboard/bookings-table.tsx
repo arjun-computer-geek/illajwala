@@ -17,7 +17,7 @@ import {
   SelectItem,
 } from "@illajwala/ui";
 import type { Appointment, AppointmentPaymentStatus, AppointmentStatus } from "@illajwala/types";
-import { RefreshCw, CreditCard, XCircle, AlertCircle } from "lucide-react";
+import { RefreshCw, CreditCard, XCircle, AlertCircle, Clock, PlayCircle, Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
   appointmentsApi,
@@ -34,26 +34,37 @@ type AppointmentWithPatient = Appointment & {
   };
 };
 
+// Centralised label map keeps the badge, filter, and toasts consistent as the
+// consultation state machine grows.
 const statusLabels: Record<AppointmentStatus, string> = {
   "pending-payment": "Pending payment",
   confirmed: "Confirmed",
+  "checked-in": "Checked in",
+  "in-session": "In session",
   completed: "Completed",
   cancelled: "Cancelled",
+  "no-show": "No show",
 };
 
 const statusVariants: Record<AppointmentStatus, "outline" | "secondary" | "default" | "destructive"> = {
   "pending-payment": "outline",
   confirmed: "secondary",
+  "checked-in": "secondary",
+  "in-session": "secondary",
   completed: "default",
   cancelled: "destructive",
+  "no-show": "destructive",
 };
 
 const statusFilterOptions: Array<{ value: AppointmentStatus | "all"; label: string }> = [
   { value: "all", label: "All statuses" },
   { value: "pending-payment", label: "Pending payment" },
   { value: "confirmed", label: "Confirmed" },
+  { value: "checked-in", label: "Checked in" },
+  { value: "in-session", label: "In session" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "no-show", label: "No show" },
 ];
 
 const amountFromMinor = (amount?: number | null) =>
@@ -146,9 +157,15 @@ export const BookingsTable = () => {
       const defaultNote =
         status === "confirmed"
           ? `Manual confirmation by ${admin?.name ?? admin?.email ?? "Admin"}`
-          : status === "cancelled"
-            ? `Manual cancellation by ${admin?.name ?? admin?.email ?? "Admin"}`
-            : undefined;
+          : status === "checked-in"
+            ? `Marked checked-in by ${admin?.name ?? admin?.email ?? "Admin"}`
+            : status === "in-session"
+              ? `Marked in-session by ${admin?.name ?? admin?.email ?? "Admin"}`
+              : status === "cancelled"
+                ? `Manual cancellation by ${admin?.name ?? admin?.email ?? "Admin"}`
+                : status === "no-show"
+                  ? `Marked no-show by ${admin?.name ?? admin?.email ?? "Admin"}`
+                  : undefined;
 
       const note =
         typeof window !== "undefined"
@@ -268,7 +285,7 @@ export const BookingsTable = () => {
 
               <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-4">
                 <div>
-                  <p className="font-medium text-foreground">Payment status</p>
+          <p className="font-medium text-foreground">Payment status</p>
                   <p>{paymentStatusLabels[paymentStatus]}</p>
                 </div>
                 <div>
@@ -293,6 +310,7 @@ export const BookingsTable = () => {
                 </div>
               ) : null}
 
+              {/* Action row keeps manual controls visible for ops whenever automated flows fail. */}
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
@@ -312,6 +330,36 @@ export const BookingsTable = () => {
                 >
                   <AlertCircle className="h-3.5 w-3.5" />
                   Mark payment failed
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-2 rounded-full px-4 text-xs"
+                  onClick={() => handleManualStatus(appointment, "checked-in")}
+                  disabled={processingId === appointment._id || appointment.status === "checked-in"}
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Mark checked in
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-2 rounded-full px-4 text-xs"
+                  onClick={() => handleManualStatus(appointment, "in-session")}
+                  disabled={processingId === appointment._id || appointment.status === "in-session"}
+                >
+                  <PlayCircle className="h-3.5 w-3.5" />
+                  Mark in session
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="gap-2 rounded-full px-4 text-xs"
+                  onClick={() => handleManualStatus(appointment, "no-show")}
+                  disabled={processingId === appointment._id || appointment.status === "no-show"}
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Mark no-show
                 </Button>
                 <Button
                   size="sm"

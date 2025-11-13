@@ -3,20 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Skeleton,
-} from "@illajwala/ui";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from "@illajwala/ui";
 import { Activity, CalendarClock, ClipboardCheck } from "lucide-react";
 import { AvailabilityPlanner } from "../../components/availability/availability-planner";
 import { useDoctorAuth } from "../../hooks/use-auth";
 import { DoctorShell } from "../../components/layout/doctor-shell";
+import { ConsultationQueue } from "../../components/dashboard/consultation-queue";
 
 const dashboardHighlights = [
   {
@@ -57,27 +49,6 @@ const clinicTasks = [
     description: "Latest Razorpay reconciliation is ready for review.",
     action: "Open ledger",
     href: "#",
-  },
-];
-
-const upcomingVisits = [
-  {
-    patient: "Arjun Patel",
-    reason: "Hypertension follow-up",
-    time: "09:00 AM",
-    mode: "Clinic visit",
-  },
-  {
-    patient: "Riya Sharma",
-    reason: "Dermatology consult",
-    time: "11:30 AM",
-    mode: "Telehealth",
-  },
-  {
-    patient: "Sameer Khan",
-    reason: "First-time evaluation",
-    time: "02:15 PM",
-    mode: "Clinic visit",
   },
 ];
 
@@ -207,30 +178,7 @@ export default function DoctorDashboardPage() {
         <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
 
         <div className="space-y-6">
-          <Card className="rounded-lg border border-border bg-card shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                Upcoming visits
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {upcomingVisits.map((visit) => (
-                <div
-                  key={`${visit.patient}-${visit.time}`}
-                  className="flex flex-col gap-2 rounded-md border border-border bg-background/40 px-4 py-3 text-sm"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-foreground">{visit.patient}</span>
-                    <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{visit.time}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{visit.reason}</p>
-                  <Badge variant="outline" className="w-fit rounded-full border-border bg-muted/20 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                    {visit.mode}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <ConsultationQueue />
 
           <Card className="rounded-lg border border-border bg-card shadow-sm">
             <CardHeader className="pb-3">

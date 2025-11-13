@@ -1,4 +1,5 @@
 import { StatusCodes } from "http-status-codes";
+import { Types } from "mongoose";
 import { AppointmentModel } from "./appointment.model";
 import type {
   CreateAppointmentInput,
@@ -13,6 +14,8 @@ import { acquireSlotLock, releaseSlotLock } from "./slot-lock.service";
 import { env } from "../../config/env";
 import { createOrder, verifyPaymentSignature, type RazorpayOrderResponse } from "../payments/razorpay.client";
 import type { AppointmentDocument } from "./appointment.model";
+import { publishConsultationEvent } from "../events/consultation-events.publisher";
+import type { ConsultationEventType } from "@illajwala/types";
 
 type Requester = AuthenticatedRequest["user"];
 
@@ -232,13 +235,143 @@ export const updateAppointmentStatus = async (
     });
   }
 
-  return AppointmentModel.findByIdAndUpdate(
-    id,
-    { status: payload.status, notes: payload.notes },
-    { new: true }
-  )
-    .populate("patient", "name email phone")
-    .populate("doctor", "name specialization consultationModes fee clinicLocations");
+  const appointment = await AppointmentModel.findById(id);
+
+  if (!appointment) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: "Appointment not found",
+    });
+  }
+
+  const previousStatus = appointment.status;
+
+  if (payload.notes !== undefined) {
+    appointment.notes = payload.notes;
+  }
+
+  const ensureConsultation = () => {
+    if (!appointment.consultation) {
+      appointment.consultation = {};
+    }
+    return appointment.consultation;
+  };
+
+  if (payload.consultation) {
+    // Merge consultation payload field-by-field so callers are not forced to
+    // send the entire object when editing notes or vitals.
+    const consultation = ensureConsultation();
+
+    if (payload.consultation.startedAt) {
+      consultation.startedAt = payload.consultation.startedAt;
+    }
+    if (payload.consultation.endedAt) {
+      consultation.endedAt = payload.consultation.endedAt;
+    }
+    if (payload.consultation.notes !== undefined) {
+      consultation.notes = payload.consultation.notes;
+    }
+    if (payload.consultation.followUpActions) {
+      consultation.followUpActions = payload.consultation.followUpActions;
+    }
+    if (payload.consultation.vitals) {
+      consultation.vitals = payload.consultation.vitals;
+    }
+    if (payload.consultation.attachments) {
+      consultation.attachments = payload.consultation.attachments;
+    }
+  }
+
+  const now = new Date();
+  if (payload.status === "checked-in" || payload.status === "in-session") {
+    const consultation = ensureConsultation();
+    // Starting or resuming a session marks the start timestamp when absent so
+    // we can display elapsed time in the doctor workspace.
+    if (!consultation.startedAt) {
+      consultation.startedAt = now;
+    }
+  }
+  if (payload.status === "completed") {
+    const consultation = ensureConsultation();
+    // Completion ensures both `startedAt` and `endedAt` are set to avoid null
+    // comparisons on the frontend timeline.
+    if (!consultation.startedAt) {
+      consultation.startedAt = appointment.consultation?.startedAt ?? appointment.scheduledAt;
+    }
+    if (!consultation.endedAt) {
+      consultation.endedAt = now;
+    }
+  }
+  if (payload.status === "no-show") {
+    const consultation = ensureConsultation();
+    if (!consultation.endedAt) {
+      consultation.endedAt = now;
+    }
+  }
+
+  appointment.status = payload.status;
+
+  if (requester?.id && appointment.consultation) {
+    const isValidObjectId = Types.ObjectId.isValid(requester.id);
+    if (isValidObjectId) {
+      // Track the latest editor responsible for consultation updates so we can
+      // audit changes in the admin console later.
+      appointment.consultation.lastEditedBy = new Types.ObjectId(requester.id);
+    }
+  }
+
+  await appointment.save();
+  await appointment.populate([
+    { path: "patient", select: "name email phone" },
+    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+  ]);
+
+  await maybePublishConsultationEvent({
+    appointment,
+    previousStatus,
+  });
+
+  return appointment;
+};
+
+const statusToEventMap: Partial<Record<AppointmentDocument["status"], ConsultationEventType>> = {
+  "checked-in": "consultation.checked-in",
+  "in-session": "consultation.in-session",
+  completed: "consultation.completed",
+  "no-show": "consultation.no-show",
+};
+
+const maybePublishConsultationEvent = async ({
+  appointment,
+  previousStatus,
+}: {
+  appointment: AppointmentDocument;
+  previousStatus: AppointmentDocument["status"];
+}) => {
+  const eventType = statusToEventMap[appointment.status];
+  if (!eventType || previousStatus === appointment.status) {
+    return;
+  }
+
+  const doctor = appointment.doctor as unknown as { _id: string; name?: string };
+  const patient = appointment.patient as unknown as { _id: string; name?: string; email?: string };
+
+  await publishConsultationEvent({
+    type: eventType,
+    appointmentId: appointment._id.toString(),
+    doctorId: doctor?._id?.toString() ?? String(appointment.doctor),
+    doctorName: doctor?.name,
+    patientId: patient?._id?.toString() ?? String(appointment.patient),
+    patientName: patient?.name,
+    patientEmail: patient?.email,
+    scheduledAt: appointment.scheduledAt.toISOString(),
+    metadata: appointment.consultation
+      ? {
+          followUpActions: appointment.consultation.followUpActions,
+          notes: appointment.consultation.notes,
+        }
+      : undefined,
+  });
 };
 
 export const confirmAppointmentPayment = async (

@@ -1,8 +1,47 @@
 import { Schema, model, type Document, Types } from "mongoose";
 import type { ConsultationMode } from "../doctors/doctor.model";
 
-export type AppointmentStatus = "pending-payment" | "confirmed" | "completed" | "cancelled";
+// NOTE: Sprint 3 introduces consultation lifecycle states that extend beyond the
+// earlier booking-only workflow. These additional states are essential for the
+// doctor workspace as well as patient reminders.
+export type AppointmentStatus =
+  | "pending-payment"
+  | "confirmed"
+  | "checked-in"
+  | "in-session"
+  | "completed"
+  | "cancelled"
+  | "no-show";
 export type AppointmentPaymentStatus = "pending" | "authorized" | "captured" | "failed";
+
+// Attachments, vitals, and consultation metadata are stored as sub-documents on
+// the appointment record for now. Future sprints may extract these into a
+// dedicated service, but this keeps the API surface tight while we iterate.
+export interface AppointmentConsultationAttachment {
+  key: string;
+  name: string;
+  url?: string;
+  contentType?: string;
+  sizeInBytes?: number;
+}
+
+export interface AppointmentConsultationVitalsEntry {
+  label: string;
+  value: string;
+  unit?: string;
+}
+
+// All visit-related information lives under `consultation`. We track optional
+// metadata only when the visit progresses beyond confirmation.
+export interface AppointmentConsultation {
+  startedAt?: Date;
+  endedAt?: Date;
+  notes?: string;
+  followUpActions?: string[];
+  attachments?: AppointmentConsultationAttachment[];
+  vitals?: AppointmentConsultationVitalsEntry[];
+  lastEditedBy?: Types.ObjectId;
+}
 
 export interface AppointmentPaymentEvent {
   type: "order-created" | "payment-authorized" | "payment-captured" | "payment-failed" | "webhook-received" | "manual-update";
@@ -32,6 +71,7 @@ export interface AppointmentDocument extends Document {
   reasonForVisit?: string;
   status: AppointmentStatus;
   notes?: string;
+  consultation?: AppointmentConsultation;
   payment?: AppointmentPayment;
   createdAt: Date;
   updatedAt: Date;
@@ -46,10 +86,35 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
     reasonForVisit: { type: String, trim: true },
     status: {
       type: String,
-      enum: ["pending-payment", "confirmed", "completed", "cancelled"],
+      enum: ["pending-payment", "confirmed", "checked-in", "in-session", "completed", "cancelled", "no-show"],
       default: "pending-payment",
     },
     notes: String,
+    // Consultation sub-document groups visit lifecycle metadata and keeps the
+    // parent document lean for simple bookings.
+    consultation: {
+      startedAt: { type: Date },
+      endedAt: { type: Date },
+      notes: { type: String },
+      followUpActions: [String],
+      attachments: [
+        {
+          key: { type: String, required: true },
+          name: { type: String, required: true },
+          url: { type: String },
+          contentType: { type: String },
+          sizeInBytes: { type: Number },
+        },
+      ],
+      vitals: [
+        {
+          label: { type: String, required: true },
+          value: { type: String, required: true },
+          unit: { type: String },
+        },
+      ],
+      lastEditedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
     payment: {
       orderId: { type: String },
       status: {
