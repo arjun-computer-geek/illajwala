@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { verifyJwt } from "../utils/jwt";
+import { verifyAccessToken } from "../utils/jwt";
 import { AppError } from "../utils/app-error";
 import { StatusCodes } from "http-status-codes";
 
@@ -31,7 +31,7 @@ export const requireAuth = (roles: Role[] = ["patient", "doctor", "admin"]) => {
       if (!token) {
         return next(AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" }));
       }
-      const payload = verifyJwt(token);
+      const payload = verifyAccessToken(token);
 
       if (!roles.includes(payload.role)) {
         return next(AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Forbidden" }));

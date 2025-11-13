@@ -9,4 +9,6 @@ export const authApi = {
   registerPatient: (payload: RegisterPatientPayload) => identityApi.registerPatient(payload),
   loginPatient: (payload: LoginPatientPayload) => identityApi.loginPatient(payload),
   loginDoctor: (payload: LoginDoctorInput) => identityApi.loginDoctor(payload),
+  refreshSession: () => identityApi.refreshSession(),
+  logout: () => identityApi.logout(),
 };

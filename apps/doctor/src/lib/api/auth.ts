@@ -6,5 +6,7 @@ const identityApi = createIdentityApi(doctorApiClient);
 
 export const doctorAuthApi = {
   login: (payload: LoginDoctorInput) => identityApi.loginDoctor(payload),
+  refreshSession: () => identityApi.refreshSession(),
+  logout: () => identityApi.logout(),
 };
 

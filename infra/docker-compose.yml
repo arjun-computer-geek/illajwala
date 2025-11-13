@@ -1,0 +1,62 @@
+version: "3.9"
+
+name: illajwala-dev
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: illajwala-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - illajwala
+
+  redis:
+    image: redis:7.2
+    container_name: illajwala-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - illajwala
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: illajwala-mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - illajwala
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  illajwala:
+    driver: bridge
+

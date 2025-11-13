@@ -6,5 +6,7 @@ const identityApi = createIdentityApi(adminApiClient);
 
 export const adminAuthApi = {
   login: (payload: LoginAdminInput) => identityApi.loginAdmin(payload),
+  refreshSession: () => identityApi.refreshSession(),
+  logout: () => identityApi.logout(),
 };
 

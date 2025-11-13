@@ -1,19 +1,76 @@
 import { sign, verify, type Secret, type SignOptions } from "jsonwebtoken";
-import type { StringValue } from "ms";
 import { env } from "../config/env";
 
-interface JwtPayload {
+export type TokenRole = "patient" | "doctor" | "admin";
+
+type TokenPayload = {
   sub: string;
-  role: "patient" | "doctor" | "admin";
-}
-
-const JWT_SECRET = env.JWT_SECRET as Secret;
-
-const signOptions: SignOptions = {
-  expiresIn: env.JWT_EXPIRY as StringValue,
+  role: TokenRole;
 };
 
-export const signJwt = (payload: JwtPayload) => sign(payload, JWT_SECRET, signOptions);
+type InternalJwtPayload = TokenPayload & {
+  type?: "access" | "refresh";
+};
 
-export const verifyJwt = (token: string) => verify(token, JWT_SECRET) as JwtPayload;
+const ACCESS_TOKEN_SECRET = env.JWT_SECRET as Secret;
+const REFRESH_TOKEN_SECRET = env.REFRESH_JWT_SECRET as Secret;
+
+const accessTokenOptions: SignOptions = { expiresIn: env.JWT_EXPIRY };
+const refreshTokenOptions: SignOptions = { expiresIn: env.REFRESH_JWT_EXPIRY };
+
+const parseSeconds = (input: string): number => {
+  const trimmed = input.trim();
+  const directNumber = Number(trimmed);
+  if (!Number.isNaN(directNumber) && directNumber > 0) {
+    return directNumber;
+  }
+
+  const match = trimmed.match(/^(\d+)(s|m|h|d)$/i);
+  if (!match) {
+    // default to 7 days
+    return 7 * 24 * 60 * 60;
+  }
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  switch (unit) {
+    case "s":
+      return value;
+    case "m":
+      return value * 60;
+    case "h":
+      return value * 60 * 60;
+    case "d":
+      return value * 24 * 60 * 60;
+    default:
+      return 7 * 24 * 60 * 60;
+  }
+};
+
+export const refreshTokenMaxAgeSeconds = parseSeconds(env.REFRESH_JWT_EXPIRY);
+
+const assertTokenType = (payload: InternalJwtPayload, expected: "access" | "refresh") => {
+  if (payload.type && payload.type !== expected) {
+    throw new Error(`Invalid token type: expected ${expected}, received ${payload.type}`);
+  }
+};
+
+export const signAccessToken = (payload: TokenPayload) =>
+  sign({ ...payload, type: "access" }, ACCESS_TOKEN_SECRET, accessTokenOptions);
+
+export const signRefreshToken = (payload: TokenPayload) =>
+  sign({ ...payload, type: "refresh" }, REFRESH_TOKEN_SECRET, refreshTokenOptions);
+
+export const verifyAccessToken = (token: string): TokenPayload => {
+  const payload = verify(token, ACCESS_TOKEN_SECRET) as InternalJwtPayload;
+  assertTokenType(payload, "access");
+  return { sub: payload.sub, role: payload.role };
+};
+
+export const verifyRefreshToken = (token: string): TokenPayload => {
+  const payload = verify(token, REFRESH_TOKEN_SECRET) as InternalJwtPayload;
+  assertTokenType(payload, "refresh");
+  return { sub: payload.sub, role: payload.role };
+};
 

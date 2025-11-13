@@ -1,8 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
-import { setAuthToken } from "@/lib/api-client";
+import {
+  setAuthToken,
+  subscribeAuthRefresh,
+  subscribeUnauthorized,
+} from "@/lib/api-client";
+import { authApi } from "@/lib/api/auth";
 import type { Doctor, PatientProfile } from "@/types/api";
+import type { TokenRefreshResponse } from "@illajwala/types";
 
 export type UserRole = "patient" | "doctor" | "admin" | null;
 
@@ -18,7 +24,7 @@ type AuthState = {
   doctor: Doctor | null;
   hydrated: boolean;
   setAuth: (data: AuthPayload) => void;
-  clearAuth: () => void;
+  clearAuth: (options?: { skipRemote?: boolean }) => void;
   setHydrated: () => void;
 };
 
@@ -39,11 +45,16 @@ export const useAuthStore = create<AuthState>()(
         } else {
           set({ ...base, patient: null, doctor: null });
         }
-        setAuthToken(payload.token);
+        setAuthToken(payload.token, { silent: true });
       },
-      clearAuth: () => {
+      clearAuth: (options) => {
         set({ token: null, role: null, patient: null, doctor: null });
-        setAuthToken(null);
+        setAuthToken(null, { silent: true });
+        if (!options?.skipRemote) {
+          void authApi.logout().catch((error) => {
+            console.warn("[auth] Failed to logout remotely", error);
+          });
+        }
       },
       setHydrated: () => set({ hydrated: true }),
     }),
@@ -57,13 +68,39 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state, error) => {
         if (!error) {
-          setAuthToken(state?.token ?? null);
+          setAuthToken(state?.token ?? null, { silent: true });
         }
         state?.setHydrated?.();
       },
     }
   )
 );
+
+const applyRefreshPayload = (payload: TokenRefreshResponse) => {
+  const nextState: Partial<AuthState> = {
+    token: payload.token,
+    role: payload.role,
+  };
+
+  if (payload.role === "patient") {
+    nextState.patient = payload.patient as PatientProfile;
+    nextState.doctor = null;
+  } else if (payload.role === "doctor") {
+    nextState.doctor = payload.doctor as Doctor;
+    nextState.patient = null;
+  } else {
+    nextState.patient = null;
+    nextState.doctor = null;
+  }
+
+  setAuthToken(payload.token, { silent: true });
+  useAuthStore.setState(nextState);
+};
+
+subscribeAuthRefresh(applyRefreshPayload);
+subscribeUnauthorized(() => {
+  useAuthStore.getState().clearAuth({ skipRemote: true });
+});
 
 export const useAuth = () =>
   useAuthStore(

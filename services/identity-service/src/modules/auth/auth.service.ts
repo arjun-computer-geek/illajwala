@@ -1,8 +1,13 @@
 import { StatusCodes } from "http-status-codes";
 import type { FilterQuery } from "mongoose";
 import { verifyPassword, hashPassword } from "../../utils/password";
-import { signJwt } from "../../utils/jwt";
-import { PatientModel } from "../patients/patient.model";
+import {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  type TokenRole,
+} from "../../utils/jwt";
+import { PatientModel, type PatientDocument } from "../patients/patient.model";
 import { DoctorModel, type DoctorDocument } from "../doctors/doctor.model";
 import { AdminModel, type AdminDocument } from "../admins/admin.model";
 import type {
@@ -13,13 +18,40 @@ import type {
 } from "./auth.schema";
 import { AppError } from "../../utils/app-error";
 
-const scrubPatient = (patient: any) => {
+type AuthTokens = {
+  token: string;
+  refreshToken: string;
+};
+
+type PatientAuthResult = AuthTokens & {
+  patient: Record<string, unknown>;
+  role: "patient";
+};
+
+type DoctorAuthResult = AuthTokens & {
+  doctor: Record<string, unknown>;
+  role: "doctor";
+};
+
+type AdminAuthResult = AuthTokens & {
+  admin: Record<string, unknown>;
+  role: "admin";
+};
+
+type AuthResult = PatientAuthResult | DoctorAuthResult | AdminAuthResult;
+
+const issueTokens = (id: string, role: TokenRole): AuthTokens => ({
+  token: signAccessToken({ sub: id, role }),
+  refreshToken: signRefreshToken({ sub: id, role }),
+});
+
+const scrubPatient = (patient: PatientDocument) => {
   const plain = patient.toObject({ versionKey: false });
   delete plain.passwordHash;
   return plain;
 };
 
-const scrubDoctor = (doctor: any) => doctor.toObject({ versionKey: false });
+const scrubDoctor = (doctor: DoctorDocument) => doctor.toObject({ versionKey: false });
 
 const scrubAdmin = (admin: AdminDocument) => {
   const plain = admin.toObject({ versionKey: false });
@@ -27,7 +59,34 @@ const scrubAdmin = (admin: AdminDocument) => {
   return plain;
 };
 
-export const registerPatient = async (payload: RegisterPatientInput) => {
+const buildPatientAuthResult = (patient: PatientDocument): PatientAuthResult => {
+  const tokens = issueTokens(patient.id, "patient");
+  return {
+    ...tokens,
+    patient: scrubPatient(patient),
+    role: "patient",
+  };
+};
+
+const buildDoctorAuthResult = (doctor: DoctorDocument): DoctorAuthResult => {
+  const tokens = issueTokens(doctor.id, "doctor");
+  return {
+    ...tokens,
+    doctor: scrubDoctor(doctor),
+    role: "doctor",
+  };
+};
+
+const buildAdminAuthResult = (admin: AdminDocument): AdminAuthResult => {
+  const tokens = issueTokens(admin.id, "admin");
+  return {
+    ...tokens,
+    admin: scrubAdmin(admin),
+    role: "admin",
+  };
+};
+
+export const registerPatient = async (payload: RegisterPatientInput): Promise<PatientAuthResult> => {
   const existingPatient = await PatientModel.findOne({
     $or: [{ email: payload.email }, { phone: payload.phone }],
   });
@@ -47,11 +106,10 @@ export const registerPatient = async (payload: RegisterPatientInput) => {
     passwordHash,
   });
 
-  const token = signJwt({ sub: patient.id, role: "patient" });
-  return { patient: scrubPatient(patient), token };
+  return buildPatientAuthResult(patient);
 };
 
-export const loginPatient = async (payload: LoginPatientInput) => {
+export const loginPatient = async (payload: LoginPatientInput): Promise<PatientAuthResult> => {
   const patient = await PatientModel.findOne({ email: payload.email });
   if (!patient) {
     throw AppError.from({
@@ -68,11 +126,10 @@ export const loginPatient = async (payload: LoginPatientInput) => {
     });
   }
 
-  const token = signJwt({ sub: patient.id, role: "patient" });
-  return { patient: scrubPatient(patient), token };
+  return buildPatientAuthResult(patient);
 };
 
-export const loginDoctor = async (payload: LoginDoctorInput) => {
+export const loginDoctor = async (payload: LoginDoctorInput): Promise<DoctorAuthResult> => {
   const orConditions: FilterQuery<DoctorDocument>[] = [{ email: payload.email }];
   if (payload.phone) {
     orConditions.push({ phone: payload.phone });
@@ -87,11 +144,10 @@ export const loginDoctor = async (payload: LoginDoctorInput) => {
     });
   }
 
-  const token = signJwt({ sub: doctor.id, role: "doctor" });
-  return { doctor: scrubDoctor(doctor), token };
+  return buildDoctorAuthResult(doctor);
 };
 
-export const loginAdmin = async (payload: LoginAdminInput) => {
+export const loginAdmin = async (payload: LoginAdminInput): Promise<AdminAuthResult> => {
   const admin = await AdminModel.findOne({ email: payload.email });
 
   if (!admin) {
@@ -109,7 +165,48 @@ export const loginAdmin = async (payload: LoginAdminInput) => {
     });
   }
 
-  const token = signJwt({ sub: admin.id, role: "admin" });
-  return { admin: scrubAdmin(admin), token };
+  return buildAdminAuthResult(admin);
+};
+
+export const refreshSession = async (refreshToken: string): Promise<AuthResult> => {
+  const payload = verifyRefreshToken(refreshToken);
+
+  switch (payload.role) {
+    case "patient": {
+      const patient = await PatientModel.findById(payload.sub);
+      if (!patient) {
+        throw AppError.from({
+          statusCode: StatusCodes.UNAUTHORIZED,
+          message: "Patient not found",
+        });
+      }
+      return buildPatientAuthResult(patient);
+    }
+    case "doctor": {
+      const doctor = await DoctorModel.findById(payload.sub);
+      if (!doctor) {
+        throw AppError.from({
+          statusCode: StatusCodes.UNAUTHORIZED,
+          message: "Doctor not found",
+        });
+      }
+      return buildDoctorAuthResult(doctor);
+    }
+    case "admin": {
+      const admin = await AdminModel.findById(payload.sub);
+      if (!admin) {
+        throw AppError.from({
+          statusCode: StatusCodes.UNAUTHORIZED,
+          message: "Admin not found",
+        });
+      }
+      return buildAdminAuthResult(admin);
+    }
+    default:
+      throw AppError.from({
+        statusCode: StatusCodes.UNAUTHORIZED,
+        message: "Unsupported token role",
+      });
+  }
 };
 

@@ -7,6 +7,7 @@ import {
   registerPatientSchema,
   loginAdminSchema,
   adminAuthResponseSchema,
+  tokenRefreshResponseSchema,
   type DoctorAuthResponse,
   type LoginDoctorInput,
   type LoginPatientInput,
@@ -15,6 +16,7 @@ import {
   type AdminAuthResponse,
   type LoginAdminInput,
   type ApiResponse,
+  type TokenRefreshResponse,
 } from "@illajwala/types";
 
 export type IdentityApi = {
@@ -22,6 +24,8 @@ export type IdentityApi = {
   loginPatient: (payload: LoginPatientInput) => Promise<PatientAuthResponse>;
   loginDoctor: (payload: LoginDoctorInput) => Promise<DoctorAuthResponse>;
   loginAdmin: (payload: LoginAdminInput) => Promise<AdminAuthResponse>;
+  refreshSession: () => Promise<TokenRefreshResponse>;
+  logout: () => Promise<void>;
 };
 
 export const createIdentityApi = (client: AxiosInstance): IdentityApi => ({
@@ -59,6 +63,15 @@ export const createIdentityApi = (client: AxiosInstance): IdentityApi => ({
       body
     );
     return adminAuthResponseSchema.parse(response.data.data);
+  },
+
+  async refreshSession() {
+    const response = await client.post<ApiResponse<TokenRefreshResponse>>("/auth/refresh");
+    return tokenRefreshResponseSchema.parse(response.data.data);
+  },
+
+  async logout() {
+    await client.post("/auth/logout");
   },
 });
 

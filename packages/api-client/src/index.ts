@@ -11,6 +11,7 @@ export type CreateApiClientOptions = {
   getTenantId?: () => string | null;
   defaultHeaders?: Record<string, string>;
   onUnauthorized?: (error: AxiosError) => void;
+  refreshAccessToken?: () => Promise<string | null>;
 };
 
 const applyDefaultHeaders = (
@@ -37,6 +38,28 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
     withCredentials: true,
   });
 
+  let refreshPromise: Promise<string | null> | null = null;
+
+  const requestNewAccessToken = () => {
+    if (!options.refreshAccessToken) {
+      return Promise.resolve(null);
+    }
+
+    if (!refreshPromise) {
+      refreshPromise = options
+        .refreshAccessToken()
+        .catch((error) => {
+          console.error("[api] Failed to refresh access token", error);
+          return null;
+        })
+        .finally(() => {
+          refreshPromise = null;
+        });
+    }
+
+    return refreshPromise;
+  };
+
   instance.interceptors.request.use((config) => {
     applyDefaultHeaders(config, options.defaultHeaders);
 
@@ -55,10 +78,32 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
 
   instance.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
-      if (error.response?.status === 401) {
+    async (error: AxiosError) => {
+      const status = error.response?.status;
+      const originalRequest = error.config as (InternalAxiosRequestConfig & {
+        _retry?: boolean;
+        skipAuthRefresh?: boolean;
+      });
+
+      if (
+        status === 401 &&
+        options.refreshAccessToken &&
+        !originalRequest?._retry &&
+        !originalRequest?.skipAuthRefresh
+      ) {
+        originalRequest._retry = true;
+        const newToken = await requestNewAccessToken();
+
+        if (newToken) {
+          originalRequest.headers.set?.("Authorization", `Bearer ${newToken}`);
+          return instance.request(originalRequest);
+        }
+      }
+
+      if (status === 401) {
         options.onUnauthorized?.(error);
       }
+
       return Promise.reject(error);
     }
   );

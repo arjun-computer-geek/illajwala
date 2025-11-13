@@ -4,6 +4,8 @@ import {
   handleLoginPatient,
   handleRegisterPatient,
   handleLoginAdmin,
+  handleRefreshSession,
+  handleLogout,
 } from "./auth.controller";
 import { validateRequest } from "../../middlewares/validate-request";
 import {
@@ -35,4 +37,6 @@ authRouter.post(
   validateRequest({ body: loginAdminSchema }),
   handleLoginAdmin
 );
+authRouter.post("/refresh", handleRefreshSession);
+authRouter.post("/logout", handleLogout);
 

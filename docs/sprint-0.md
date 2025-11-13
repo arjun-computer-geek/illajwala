@@ -2,7 +2,7 @@
 
 - **Platform foundations**  
   - Stabilize PNPM workspace configs, shared TypeScript/ESLint presets, and `.env` loading utilities across apps and services.  
-  - Stand up local development stack (MongoDB, Redis, Mailhog) with Docker Compose and document bootstrap steps.
+  - Stand up local development stack (MongoDB, Redis, Mailhog) with Docker Compose and document bootstrap steps (`docs/local-development.md`).
 
 - **Identity service**  
   - Finalize environment loader, Mongo connection, and configuration schema.  
@@ -32,4 +32,15 @@
 - **Quality & Ops**  
   - Set up GitHub Action for lint/test on pull requests.  
   - Document sprint deliverables and acceptance criteria in sync with `illajwala_master_prd.md`.
+
+## Sprint 0 Deliverables
+
+- ✅ **Monorepo foundations:** PNPM workspaces established across apps, services, packages, and infra with a shared `tsconfig.base.json`.  
+- ✅ **Developer environment:** Docker Compose stack for MongoDB, Redis, Mailhog plus bootstrap guide in `docs/local-development.md`.  
+- ✅ **Identity service:** Express service with patient/doctor/admin auth flows, refresh-token rotation, and seeded demo data.  
+- ✅ **Patient web:** Landing/search experience wired to identity-service with account dashboard scaffold and mocked appointments.  
+- ✅ **Doctor hub:** Authenticated dashboard with availability planner placeholder stored locally until appointment-service integration.  
+- ✅ **Admin console:** Provider review queue and activity log placeholders powered by identity-service data.  
+- ✅ **Shared packages:** Type-safe API client with automatic token refresh, updated Zod schemas, and shared UI kit tokens.  
+- ✅ **Quality & ops:** CI workflow (`.github/workflows/ci.yml`) running lint + tests, refreshed sprint documentation.
 

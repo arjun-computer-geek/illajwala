@@ -3,15 +3,20 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
-import type { AdminAuthResponse, AdminProfile } from "@illajwala/types";
-import { setAdminAuthToken } from "../lib/api-client";
+import type { AdminAuthResponse, AdminProfile, TokenRefreshResponse } from "@illajwala/types";
+import {
+  setAdminAuthToken,
+  subscribeAdminRefresh,
+  subscribeAdminUnauthorized,
+} from "../lib/api-client";
+import { adminAuthApi } from "../lib/api/auth";
 
 type AdminAuthState = {
   token: string | null;
   admin: AdminProfile | null;
   hydrated: boolean;
   setAuth: (payload: AdminAuthResponse) => void;
-  clearAuth: () => void;
+  clearAuth: (options?: { skipRemote?: boolean }) => void;
   setHydrated: () => void;
 };
 
@@ -25,11 +30,16 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       hydrated: false,
       setAuth: ({ token, admin }) => {
         set({ token, admin });
-        setAdminAuthToken(token);
+        setAdminAuthToken(token, { silent: true });
       },
-      clearAuth: () => {
+      clearAuth: (options) => {
         set({ token: null, admin: null });
-        setAdminAuthToken(null);
+        setAdminAuthToken(null, { silent: true });
+        if (!options?.skipRemote) {
+          void adminAuthApi.logout().catch((error) => {
+            console.warn("[admin-auth] Failed to logout remotely", error);
+          });
+        }
       },
       setHydrated: () => set({ hydrated: true }),
     }),
@@ -38,13 +48,30 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       partialize: ({ token, admin }) => ({ token, admin }),
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) {
-          setAdminAuthToken(state.token ?? null);
+          setAdminAuthToken(state.token ?? null, { silent: true });
         }
         state?.setHydrated?.();
       },
     }
   )
 );
+
+const handleAdminRefresh = (payload: TokenRefreshResponse) => {
+  if (payload.role !== "admin") {
+    return;
+  }
+
+  setAdminAuthToken(payload.token, { silent: true });
+  useAdminAuthStore.setState({
+    token: payload.token,
+    admin: payload.admin,
+  });
+};
+
+subscribeAdminRefresh(handleAdminRefresh);
+subscribeAdminUnauthorized(() => {
+  useAdminAuthStore.getState().clearAuth({ skipRemote: true });
+});
 
 export const useAdminAuth = () =>
   useAdminAuthStore(
