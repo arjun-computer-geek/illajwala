@@ -1,10 +1,12 @@
 import { app } from "./app";
 import { connectDatabase } from "./config/database";
+import { connectRedis } from "./config/redis";
 import { env } from "./config/env";
 
 const startServer = async () => {
   try {
     await connectDatabase();
+    await connectRedis();
     app.listen(env.PORT, () => {
       console.info(`🚀 Server running on port ${env.PORT}`);
     });

@@ -16,6 +16,7 @@ import { Building2, LineChart, ShieldCheck } from "lucide-react";
 import { useAdminAuth } from "../../hooks/use-auth";
 import { ProviderReviewQueue } from "../../components/dashboard/provider-review-queue";
 import { ActivityLog } from "../../components/dashboard/activity-log";
+import { BookingsTable } from "../../components/dashboard/bookings-table";
 
 const summaryMetrics = [
   {
@@ -117,6 +118,8 @@ export default function AdminDashboardPage() {
             );
           })}
         </section>
+
+        <BookingsTable />
 
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
           <ProviderReviewQueue />

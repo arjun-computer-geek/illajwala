@@ -4,12 +4,14 @@ import { doctorRouter } from "../doctors/doctors.router";
 import { patientRouter } from "../patients/patients.router";
 import { authRouter } from "../auth/auth.router";
 import { statsRouter } from "../stats/stats.router";
+import { paymentsRouter } from "../payments/payments.router";
 
-export const rootRouter = Router();
+export const rootRouter: Router = Router();
 
 rootRouter.use("/auth", authRouter);
 rootRouter.use("/patients", patientRouter);
 rootRouter.use("/doctors", doctorRouter);
 rootRouter.use("/appointments", appointmentRouter);
 rootRouter.use("/stats", statsRouter);
+rootRouter.use("/payments", paymentsRouter);
 

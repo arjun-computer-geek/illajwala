@@ -20,6 +20,12 @@ const envSchema = z.object({
   REFRESH_JWT_EXPIRY: z.string().default("7d"),
   CLIENT_URL: z.string().url().optional(),
   CLIENT_ORIGINS: z.string().optional(),
+  REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
+  RAZORPAY_KEY_ID: z.string().default("rzp_test_placeholder"),
+  RAZORPAY_KEY_SECRET: z.string().default("razorpay_secret_placeholder"),
+  RAZORPAY_WEBHOOK_SECRET: z.string().default("razorpay_webhook_secret_placeholder"),
+  RAZORPAY_CURRENCY: z.string().default("INR"),
+  APPOINTMENT_PAYMENT_TIMEOUT_MINUTES: z.coerce.number().int().positive().default(15),
 });
 
 const envData = loadEnv({

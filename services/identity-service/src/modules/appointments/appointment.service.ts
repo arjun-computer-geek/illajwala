@@ -3,13 +3,33 @@ import { AppointmentModel } from "./appointment.model";
 import type {
   CreateAppointmentInput,
   UpdateAppointmentStatusInput,
+  ConfirmAppointmentPaymentInput,
+  UpdateAppointmentPaymentInput,
 } from "./appointment.schema";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { AppError } from "../../utils/app-error";
+import { DoctorModel } from "../doctors/doctor.model";
+import { acquireSlotLock, releaseSlotLock } from "./slot-lock.service";
+import { env } from "../../config/env";
+import { createOrder, verifyPaymentSignature, type RazorpayOrderResponse } from "../payments/razorpay.client";
+import type { AppointmentDocument } from "./appointment.model";
 
 type Requester = AuthenticatedRequest["user"];
 
-export const createAppointment = async (payload: CreateAppointmentInput, requester?: Requester) => {
+export const createAppointment = async (
+  payload: CreateAppointmentInput,
+  requester?: Requester
+): Promise<{
+  appointment: AppointmentDocument;
+  paymentOrder: null | {
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string;
+    receipt?: string;
+    intentExpiresAt?: Date;
+  };
+}> => {
   if (requester?.role === "patient" && requester.id !== payload.patientId) {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
@@ -17,20 +37,142 @@ export const createAppointment = async (payload: CreateAppointmentInput, request
     });
   }
 
-  const appointment = await AppointmentModel.create({
-    patient: payload.patientId,
-    doctor: payload.doctorId,
-    scheduledAt: payload.scheduledAt,
-    mode: payload.mode,
-    reasonForVisit: payload.reasonForVisit,
-  });
+  const scheduledAt = new Date(payload.scheduledAt);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid scheduled date",
+    });
+  }
+
+  if (scheduledAt.getTime() <= Date.now()) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Cannot book slots in the past",
+    });
+  }
+
+  const doctor = await DoctorModel.findById(payload.doctorId).select(
+    "fee consultationModes name specialization"
+  );
+  if (!doctor) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: "Doctor not found",
+    });
+  }
+
+  if (!doctor.consultationModes.includes(payload.mode)) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: `Doctor is not available for ${payload.mode} consultations`,
+    });
+  }
+
+  const expiresInSeconds = env.APPOINTMENT_PAYMENT_TIMEOUT_MINUTES * 60;
+  const lockAcquired = await acquireSlotLock(payload.doctorId, scheduledAt, expiresInSeconds);
+
+  if (!lockAcquired) {
+    throw AppError.from({
+      statusCode: StatusCodes.CONFLICT,
+      message: "Selected slot is no longer available. Please choose a different time.",
+    });
+  }
+
+  try {
+    const conflictingAppointment = await AppointmentModel.findOne({
+      doctor: payload.doctorId,
+      scheduledAt,
+      status: { $ne: "cancelled" },
+    });
+
+    if (conflictingAppointment) {
+      throw AppError.from({
+        statusCode: StatusCodes.CONFLICT,
+        message: "Another appointment already exists for this slot.",
+      });
+    }
+
+    const amountInRupees = typeof doctor.fee === "number" && doctor.fee > 0 ? doctor.fee : 0;
+    const amountInMinorUnits = Math.round(amountInRupees * 100);
+    const requiresPayment = amountInMinorUnits > 0;
+
+    let paymentPayload:
+      | null
+      | {
+          orderId: string;
+          amount: number;
+          currency: string;
+          keyId: string;
+          receipt?: string;
+          intentExpiresAt?: Date;
+        } = null;
+
+    let paymentData: AppointmentDocument["payment"] | undefined;
+    let status: AppointmentDocument["status"] = requiresPayment ? "pending-payment" : "confirmed";
+
+    if (requiresPayment) {
+      const receipt = `appt_${payload.patientId}_${Date.now()}`;
+      const order: RazorpayOrderResponse = await createOrder({
+        amount: amountInMinorUnits,
+        currency: env.RAZORPAY_CURRENCY,
+        receipt,
+        notes: {
+          doctorId: String(payload.doctorId),
+          patientId: String(payload.patientId),
+          scheduledAt: scheduledAt.toISOString(),
+        },
+      });
+
+      const intentExpiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+      paymentData = {
+        orderId: order.id,
+        status: "pending",
+        amount: order.amount,
+        currency: order.currency,
+        receipt: order.receipt ?? receipt,
+        history: [
+          {
+            type: "order-created",
+            payload: order,
+            createdAt: new Date(),
+          },
+        ],
+        intentExpiresAt,
+      };
+
+      paymentPayload = {
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: env.RAZORPAY_KEY_ID,
+        receipt: order.receipt ?? receipt,
+        intentExpiresAt,
+      };
+    }
+
+    const appointment = await AppointmentModel.create({
+      patient: payload.patientId,
+      doctor: payload.doctorId,
+      scheduledAt,
+      mode: payload.mode,
+      reasonForVisit: payload.reasonForVisit,
+      status,
+      payment: paymentData,
+    });
 
   await appointment.populate([
     { path: "patient", select: "name email phone" },
     { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
   ]);
 
-  return appointment;
+    return {
+      appointment,
+      paymentOrder: paymentPayload,
+    };
+  } finally {
+    await releaseSlotLock(payload.doctorId, scheduledAt);
+  }
 };
 
 export const listAppointments = async ({
@@ -38,12 +180,14 @@ export const listAppointments = async ({
   pageSize = 20,
   patientId,
   doctorId,
+  status,
   requester,
 }: {
   page?: number;
   pageSize?: number;
   patientId?: string;
   doctorId?: string;
+  status?: string;
   requester?: Requester;
 }) => {
   const filter: Record<string, unknown> = {};
@@ -52,6 +196,9 @@ export const listAppointments = async ({
   }
   if (doctorId) {
     filter.doctor = doctorId;
+  }
+  if (status) {
+    filter.status = status;
   }
   if (requester?.role === "patient") {
     filter.patient = requester.id;
@@ -92,5 +239,148 @@ export const updateAppointmentStatus = async (
   )
     .populate("patient", "name email phone")
     .populate("doctor", "name specialization consultationModes fee clinicLocations");
+};
+
+export const confirmAppointmentPayment = async (
+  id: string,
+  payload: ConfirmAppointmentPaymentInput,
+  requester?: Requester
+) => {
+  const appointment = await AppointmentModel.findById(id);
+
+  if (!appointment) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: "Appointment not found",
+    });
+  }
+
+  if (requester?.role === "patient" && appointment.patient.toString() !== requester.id) {
+    throw AppError.from({
+      statusCode: StatusCodes.FORBIDDEN,
+      message: "You can only confirm payments for your own appointments",
+    });
+  }
+
+  if (!appointment.payment) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "This appointment does not require a payment",
+    });
+  }
+
+  if (appointment.payment.orderId !== payload.orderId) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Order mismatch for this appointment",
+    });
+  }
+
+  if (appointment.payment.status === "captured" && appointment.status === "confirmed") {
+    await appointment.populate([
+      { path: "patient", select: "name email phone" },
+      { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+    ]);
+    return appointment;
+  }
+
+  const isValidSignature = verifyPaymentSignature({
+    orderId: payload.orderId,
+    paymentId: payload.paymentId,
+    signature: payload.signature,
+  });
+
+  if (!isValidSignature) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid payment signature",
+    });
+  }
+
+  const now = new Date();
+
+  appointment.payment.status = "captured";
+  appointment.payment.paymentId = payload.paymentId;
+  appointment.payment.signature = payload.signature;
+  appointment.payment.capturedAt = now;
+  appointment.payment.history = [
+    ...(appointment.payment.history ?? []),
+    {
+      type: "payment-captured",
+      payload,
+      createdAt: now,
+    },
+  ];
+
+  appointment.status = "confirmed";
+
+  await appointment.save();
+  await appointment.populate([
+    { path: "patient", select: "name email phone" },
+    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+  ]);
+
+  return appointment;
+};
+
+export const updateAppointmentPayment = async (
+  id: string,
+  payload: UpdateAppointmentPaymentInput,
+  requester?: Requester
+) => {
+  if (requester?.role !== "admin") {
+    throw AppError.from({
+      statusCode: StatusCodes.FORBIDDEN,
+      message: "Only admins can override payment status",
+    });
+  }
+
+  const appointment = await AppointmentModel.findById(id);
+
+  if (!appointment || !appointment.payment) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: "Appointment payment not found",
+    });
+  }
+
+  const now = new Date();
+
+  appointment.payment.status = payload.status;
+  if (payload.paymentId) {
+    appointment.payment.paymentId = payload.paymentId;
+  }
+
+  if (payload.status === "captured") {
+    appointment.payment.capturedAt = now;
+    appointment.status = "confirmed";
+  } else if (payload.status === "failed") {
+    appointment.payment.failedAt = now;
+    if (payload.notes) {
+      appointment.notes = [appointment.notes, payload.notes].filter(Boolean).join("\n");
+    }
+  }
+
+  appointment.payment.history = [
+    ...(appointment.payment.history ?? []),
+    {
+      type: "manual-update",
+      payload: {
+        status: payload.status,
+        paymentId: payload.paymentId,
+        notes: payload.notes,
+        actor: requester.id,
+      },
+      createdAt: now,
+    },
+  ];
+
+  await appointment.save();
+  await appointment.populate([
+    { path: "patient", select: "name email phone" },
+    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+  ]);
+
+  return appointment;
 };
 

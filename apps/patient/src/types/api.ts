@@ -6,7 +6,11 @@ import type {
   ApiResponse,
   Appointment,
   AppointmentStatus,
+  AppointmentPayment,
+  AppointmentPaymentOrder,
+  ConfirmAppointmentPaymentInput,
   BookAppointmentPayload,
+  BookAppointmentResponse,
   ClinicLocation,
   ConsultationMode,
   Dependent,
@@ -25,7 +29,11 @@ export type {
   ApiResponse,
   Appointment,
   AppointmentStatus,
+  AppointmentPayment,
+  AppointmentPaymentOrder,
+  ConfirmAppointmentPaymentInput,
   BookAppointmentPayload,
+  BookAppointmentResponse,
   ClinicLocation,
   ConsultationMode,
   Dependent,
@@ -69,4 +77,5 @@ export type StatsOverview = {
 
 export type RegisterPatientPayload = RegisterPatientInput;
 export type LoginPatientPayload = LoginPatientInput;
+export type ConfirmAppointmentPaymentPayload = ConfirmAppointmentPaymentInput;
 

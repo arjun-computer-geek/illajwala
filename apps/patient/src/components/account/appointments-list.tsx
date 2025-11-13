@@ -13,13 +13,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
-const statusVariantMap: Record<Appointment["status"], "secondary" | "default" | "outline" | "destructive"> =
-  {
-    pending: "outline",
-    confirmed: "secondary",
-    completed: "default",
-    cancelled: "destructive",
-  };
+const statusVariantMap: Record<string, "secondary" | "default" | "outline" | "destructive"> = {
+  pending: "outline",
+  "pending-payment": "outline",
+  confirmed: "secondary",
+  completed: "default",
+  cancelled: "destructive",
+};
+
+const formatStatus = (status: Appointment["status"]) => {
+  switch (status) {
+    case "pending-payment":
+      return "Pending payment";
+    case "pending":
+      return "Pending";
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+};
 
 export const AppointmentsList = () => {
   const { isAuthenticated, hydrated } = useAuth();
@@ -122,8 +133,11 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
           <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide">
             {appointment.doctor.specialization}
           </Badge>
-          <Badge variant={statusVariantMap[appointment.status]} className="rounded-full px-3 py-1 text-xs font-semibold">
-            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+          <Badge
+            variant={statusVariantMap[appointment.status] ?? "outline"}
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+          >
+            {formatStatus(appointment.status)}
           </Badge>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -147,14 +161,26 @@ const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
             Reason: {appointment.reasonForVisit}
           </p>
         )}
+      {appointment.payment && (
+        <p className="text-xs text-muted-foreground/80">
+          Payment status: <span className="font-medium text-foreground">{appointment.payment.status}</span>
+          {appointment.payment.receipt ? ` • Receipt ${appointment.payment.receipt}` : ""}
+        </p>
+      )}
       </div>
       <div className="flex flex-col gap-3 md:flex-row">
         <Button variant="outline" className="rounded-full px-6" disabled>
           Reschedule
         </Button>
-        <Button variant="secondary" className="rounded-full px-6" disabled>
-          Cancel
-        </Button>
+        {appointment.status === "pending-payment" ? (
+          <Button variant="secondary" className="rounded-full px-6" disabled>
+            Complete payment (coming soon)
+          </Button>
+        ) : (
+          <Button variant="secondary" className="rounded-full px-6" disabled>
+            Cancel
+          </Button>
+        )}
       </div>
     </div>
   );

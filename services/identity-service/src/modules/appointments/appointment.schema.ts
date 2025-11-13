@@ -9,10 +9,24 @@ export const createAppointmentSchema = z.object({
 });
 
 export const updateAppointmentStatusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
+  status: z.enum(["pending-payment", "confirmed", "completed", "cancelled"]),
+  notes: z.string().max(1000).optional(),
+});
+
+export const confirmAppointmentPaymentSchema = z.object({
+  orderId: z.string().min(1),
+  paymentId: z.string().min(1),
+  signature: z.string().min(1),
+});
+
+export const updateAppointmentPaymentSchema = z.object({
+  status: z.enum(["pending", "authorized", "captured", "failed"]),
+  paymentId: z.string().optional(),
   notes: z.string().max(1000).optional(),
 });
 
 export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
 export type UpdateAppointmentStatusInput = z.infer<typeof updateAppointmentStatusSchema>;
+export type ConfirmAppointmentPaymentInput = z.infer<typeof confirmAppointmentPaymentSchema>;
+export type UpdateAppointmentPaymentInput = z.infer<typeof updateAppointmentPaymentSchema>;
 

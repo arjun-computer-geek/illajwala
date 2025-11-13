@@ -23,7 +23,16 @@ app.use(
 );
 app.use(helmet());
 app.use(morgan(isProd ? "combined" : "dev"));
-app.use(express.json({ limit: "1mb" }));
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, _res, buffer) => {
+      if (buffer?.length) {
+        req.rawBody = buffer.toString("utf-8");
+      }
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
