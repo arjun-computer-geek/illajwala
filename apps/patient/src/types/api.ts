@@ -17,8 +17,10 @@ import type {
   Doctor,
   DoctorAuthResponse,
   LoginPatientInput,
+  NotificationAuditEntry,
   PaginatedResponse,
   PatientAuthResponse,
+  PatientNotificationPreferences,
   PatientProfile,
   RegisterPatientInput,
 } from "@illajwala/types";
@@ -39,8 +41,10 @@ export type {
   Dependent,
   Doctor,
   DoctorAuthResponse,
+  NotificationAuditEntry,
   PaginatedResponse,
   PatientAuthResponse,
+  PatientNotificationPreferences,
   PatientProfile,
 } from "@illajwala/types";
 
@@ -79,3 +83,10 @@ export type RegisterPatientPayload = RegisterPatientInput;
 export type LoginPatientPayload = LoginPatientInput;
 export type ConfirmAppointmentPaymentPayload = ConfirmAppointmentPaymentInput;
 
+export type AppointmentFeedbackPayload = {
+  rating: number;
+  comments?: string;
+};
+
+export type NotificationPreferences = PatientNotificationPreferences;
+export type NotificationHistoryEntry = NotificationAuditEntry;

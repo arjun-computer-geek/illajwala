@@ -28,9 +28,19 @@ export const updateDoctorProfile = async (id: string, payload: DoctorProfileUpda
   }
 
   if (payload.onboardingChecklist) {
+    const updates = Object.entries(payload.onboardingChecklist).reduce<Partial<DoctorDocument["onboardingChecklist"]>>(
+      (accumulator, [key, value]) => {
+        if (value !== undefined) {
+          accumulator[key as keyof DoctorDocument["onboardingChecklist"]] = value;
+        }
+        return accumulator;
+      },
+      {}
+    );
+
     doctor.onboardingChecklist = {
       ...doctor.onboardingChecklist,
-      ...payload.onboardingChecklist,
+      ...updates,
     };
   }
 
@@ -73,7 +83,9 @@ export const reviewDoctor = async (id: string, payload: DoctorReviewActionInput)
 
   if (payload.onboardingChecklist) {
     for (const [key, value] of Object.entries(payload.onboardingChecklist)) {
-      setFields[`onboardingChecklist.${key}`] = value;
+      if (value !== undefined) {
+        setFields[`onboardingChecklist.${key}`] = value;
+      }
     }
   }
 
@@ -259,7 +271,7 @@ export const getDoctorAvailability = async (
     const slots: AvailabilitySlot[] = [];
 
     for (const time of defaultSlots) {
-      const [hours, minutes] = time.split(":").map(Number);
+      const [hours = 0, minutes = 0] = time.split(":").map(Number);
       const slotStart = new Date(slotDate);
       slotStart.setHours(hours, minutes, 0, 0);
       const slotEnd = new Date(slotStart);

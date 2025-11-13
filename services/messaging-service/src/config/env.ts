@@ -31,6 +31,11 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM_EMAIL: z.string().email().optional(),
+  SMS_PROVIDER_API_KEY: z.string().optional(),
+  SMS_PROVIDER_SENDER: z.string().optional(),
+  WHATSAPP_PROVIDER_API_KEY: z.string().optional(),
+  WHATSAPP_BUSINESS_NUMBER: z.string().optional(),
+  DEFAULT_LOCALE: z.string().default("en"),
 });
 
 export const env = envSchema.parse(process.env);
@@ -52,6 +57,28 @@ export const emailConfig = (() => {
           }
         : undefined,
     from: env.SMTP_FROM_EMAIL,
+  };
+})();
+
+export const smsConfig = (() => {
+  if (!env.SMS_PROVIDER_SENDER) {
+    return null;
+  }
+
+  return {
+    sender: env.SMS_PROVIDER_SENDER,
+    apiKey: env.SMS_PROVIDER_API_KEY ?? null,
+  };
+})();
+
+export const whatsappConfig = (() => {
+  if (!env.WHATSAPP_BUSINESS_NUMBER) {
+    return null;
+  }
+
+  return {
+    businessNumber: env.WHATSAPP_BUSINESS_NUMBER,
+    apiKey: env.WHATSAPP_PROVIDER_API_KEY ?? null,
   };
 })();
 

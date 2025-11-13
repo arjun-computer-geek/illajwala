@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Poppins, IBM_Plex_Sans } from "next/font/google";
 import "@ui/styles/globals.css";
 import { TenantBootstrapper } from "../components/tenant-bootstrapper";
@@ -42,7 +43,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} ${plexSans.variable} antialiased`}>
         <div className="min-h-screen bg-background text-foreground">
-          <TenantBootstrapper />
+          <Suspense fallback={null}>
+            <TenantBootstrapper />
+          </Suspense>
           {children}
         </div>
       </body>

@@ -18,19 +18,32 @@ export interface AuthenticatedRequest<
   };
 }
 
+const extractToken = (req: Request): string | null => {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    const token = header.split(" ")[1];
+    if (token) {
+      return token;
+    }
+  }
+
+  const queryToken = typeof req.query?.token === "string" ? req.query.token : null;
+  if (queryToken) {
+    return queryToken;
+  }
+
+  return null;
+};
+
 export const requireAuth = (roles: Role[] = ["patient", "doctor", "admin"]) => {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
-    const header = req.headers.authorization;
+    const token = extractToken(req);
 
-    if (!header?.startsWith("Bearer ")) {
+    if (!token) {
       return next(AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" }));
     }
 
     try {
-      const token = header.split(" ")[1];
-      if (!token) {
-        return next(AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" }));
-      }
       const payload = verifyAccessToken(token);
 
       if (!roles.includes(payload.role)) {

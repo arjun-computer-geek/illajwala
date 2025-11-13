@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { Suspense, useMemo, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -50,7 +50,7 @@ const careHighlights = [
   },
 ];
 
-export default function DoctorLoginPage() {
+const DoctorLoginContent = () => {
   useTenantBootstrap();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -222,5 +222,18 @@ export default function DoctorLoginPage() {
       </div>
     </main>
   );
-}
+};
 
+export default function DoctorLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+          Preparing login experience…
+        </div>
+      }
+    >
+      <DoctorLoginContent />
+    </Suspense>
+  );
+}

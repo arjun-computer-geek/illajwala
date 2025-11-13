@@ -5,6 +5,9 @@ import { patientRouter } from "../patients/patients.router";
 import { authRouter } from "../auth/auth.router";
 import { statsRouter } from "../stats/stats.router";
 import { paymentsRouter } from "../payments/payments.router";
+import { analyticsRouter } from "../analytics/analytics.router";
+import { notificationsRouter } from "../notifications/notifications.router";
+import { realtimeRouter } from "../realtime/realtime.router";
 
 export const rootRouter: Router = Router();
 
@@ -14,4 +17,7 @@ rootRouter.use("/doctors", doctorRouter);
 rootRouter.use("/appointments", appointmentRouter);
 rootRouter.use("/stats", statsRouter);
 rootRouter.use("/payments", paymentsRouter);
+rootRouter.use("/analytics", analyticsRouter);
+rootRouter.use("/notifications", notificationsRouter);
+rootRouter.use("/realtime", realtimeRouter);
 

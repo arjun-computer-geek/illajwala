@@ -12,11 +12,23 @@ type ListAppointmentsParams = {
 };
 
 export type UpdateConsultationPayload = {
-  status: AppointmentStatus;
+  status?: AppointmentStatus;
   notes?: string;
   consultation?: {
     notes?: string;
     followUpActions?: string[];
+    vitals?: Array<{
+      label: string;
+      value: string;
+      unit?: string;
+    }>;
+    attachments?: Array<{
+      key: string;
+      name: string;
+      url?: string;
+      contentType?: string;
+      sizeInBytes?: number;
+    }>;
   };
 };
 

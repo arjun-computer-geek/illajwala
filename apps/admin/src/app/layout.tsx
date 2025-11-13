@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins, IBM_Plex_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "@ui/styles/globals.css";
+import { AppProviders } from "../components/providers/app-providers";
 
 const inter = Inter({
   variable: "--font-illajwala-body",
@@ -41,8 +42,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} ${plexSans.variable} bg-background text-foreground antialiased`}>
-        <div className="min-h-screen">{children}</div>
-        <Toaster position="top-center" richColors />
+        <AppProviders>
+          <div className="min-h-screen">{children}</div>
+          <Toaster position="top-center" richColors />
+        </AppProviders>
       </body>
     </html>
   );

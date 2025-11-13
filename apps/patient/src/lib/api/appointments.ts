@@ -2,6 +2,7 @@ import { apiClient } from "../api-client";
 import type {
   ApiResponse,
   Appointment,
+  AppointmentFeedbackPayload,
   BookAppointmentPayload,
   BookAppointmentResponse,
   PaginatedResponse,
@@ -22,6 +23,13 @@ export const appointmentsApi = {
   confirmPayment: async (appointmentId: string, payload: ConfirmAppointmentPaymentPayload) => {
     const response = await apiClient.post<ApiResponse<Appointment>>(
       `/appointments/${appointmentId}/payment/confirm`,
+      payload
+    );
+    return response.data.data;
+  },
+  submitFeedback: async (appointmentId: string, payload: AppointmentFeedbackPayload) => {
+    const response = await apiClient.post<ApiResponse<Appointment>>(
+      `/appointments/${appointmentId}/feedback`,
       payload
     );
     return response.data.data;

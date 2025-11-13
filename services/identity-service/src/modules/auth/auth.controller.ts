@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import type { CookieOptions } from "express";
 import { StatusCodes } from "http-status-codes";
 import { successResponse } from "../../utils/api-response";
@@ -87,7 +87,7 @@ export const handleLoginAdmin = catchAsync<
   return respondWithAuth(res, result, "Admin logged in");
 });
 
-export const handleRefreshSession = catchAsync(async (req: Request, res: Response) => {
+export const handleRefreshSession: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const refreshTokenFromCookie = req.cookies?.[REFRESH_COOKIE_NAME];
   const refreshTokenFromBody =
     typeof req.body === "object" && req.body !== null ? (req.body as { refreshToken?: string }).refreshToken : undefined;
@@ -105,7 +105,7 @@ export const handleRefreshSession = catchAsync(async (req: Request, res: Respons
   return respondWithAuth(res, result, "Session refreshed");
 });
 
-export const handleLogout = catchAsync(async (_req: Request, res: Response) => {
+export const handleLogout: RequestHandler = catchAsync(async (_req: Request, res: Response) => {
   clearRefreshTokenCookie(res);
   return res.status(StatusCodes.NO_CONTENT).send();
 });

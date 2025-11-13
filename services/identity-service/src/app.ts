@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -7,8 +7,9 @@ import { clientOrigins, env, isProd } from "./config/env";
 import { rootRouter } from "./modules/routes";
 import { notFoundHandler } from "./middlewares/not-found";
 import { errorHandler } from "./middlewares/error-handler";
+import { metricsHandler } from "./metrics";
 
-const app = express();
+const app: Application = express();
 
 app.use(
   cors({
@@ -39,6 +40,8 @@ app.use(cookieParser());
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+app.get("/metrics", metricsHandler);
 
 app.use("/api", rootRouter);
 

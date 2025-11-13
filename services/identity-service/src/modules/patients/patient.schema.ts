@@ -22,3 +22,11 @@ export type CreatePatientInput = z.infer<typeof createPatientSchema>;
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
 export type AddDependentInput = z.infer<typeof addDependentSchema>;
 
+export const updateNotificationPreferencesSchema = z.object({
+  emailReminders: z.boolean().optional(),
+  smsReminders: z.boolean().optional(),
+  whatsappReminders: z.boolean().optional(),
+});
+
+export type UpdateNotificationPreferencesInput = z.infer<typeof updateNotificationPreferencesSchema>;
+

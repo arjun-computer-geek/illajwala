@@ -8,13 +8,23 @@ import { createQueueManager } from "./modules/queues/queue-manager";
  * 2. Start the lightweight HTTP server for health checks and manual triggers.
  */
 async function bootstrap() {
-  const logger = createQueueManager().logger;
+  const queueManager = createQueueManager();
+  const { logger } = queueManager;
 
   const app = createApp();
 
   app.listen(env.PORT, () => {
     logger.info({ port: env.PORT }, "Messaging service ready");
   });
+
+  const shutdown = async () => {
+    logger.info("Shutting down messaging service");
+    await queueManager.shutdown();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
 
 void bootstrap();

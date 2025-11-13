@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -31,6 +31,11 @@ import { CalendarClock, RefreshCw, Clock3, Stethoscope, FileText, Video, MapPin 
 import { toast } from "sonner";
 import { doctorAppointmentsApi } from "../../lib/api/appointments";
 import { useDoctorAuth } from "../../hooks/use-auth";
+import {
+  type ConsultationRealtimeEvent,
+  useConsultationRealtime,
+} from "../../lib/realtime/consultations";
+import { ConsultationWorkspace } from "./consultation-workspace";
 
 type QueueFilter = "today" | "upcoming" | "completed";
 
@@ -89,8 +94,20 @@ const emptyCopy: Record<QueueFilter, { title: string; description: string }> = {
   },
 };
 
+const sortAppointmentsBySchedule = (appointments: Appointment[]) =>
+  [...appointments].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+
+const upsertAppointment = (appointments: Appointment[], incoming: Appointment) => {
+  const next = appointments.filter((appointment) => appointment._id !== incoming._id);
+  next.push(incoming);
+  return sortAppointmentsBySchedule(next);
+};
+
+const removeAppointment = (appointments: Appointment[], appointmentId: string) =>
+  appointments.filter((appointment) => appointment._id !== appointmentId);
+
 export const ConsultationQueue = () => {
-  const { doctor } = useDoctorAuth();
+  const { doctor, token } = useDoctorAuth();
   const [activeFilter, setActiveFilter] = useState<QueueFilter>("today");
   const [state, setState] = useState<QueueState>({ kind: "idle" });
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -98,6 +115,7 @@ export const ConsultationQueue = () => {
   const [summaryNotes, setSummaryNotes] = useState("");
   const [summaryFollowUps, setSummaryFollowUps] = useState("");
   const [noShowTarget, setNoShowTarget] = useState<Appointment | null>(null);
+  const [workspaceAppointment, setWorkspaceAppointment] = useState<Appointment | null>(null);
 
   const fetchQueue = useCallback(
     async (filter: QueueFilter) => {
@@ -143,6 +161,72 @@ export const ConsultationQueue = () => {
   const upcomingCount = filteredAppointments.length;
 
   const refresh = useCallback(() => fetchQueue(activeFilter), [activeFilter, fetchQueue]);
+
+  const lastRealtimeErrorAtRef = useRef<number>(0);
+
+  const handleRealtimeEvent = useCallback(
+    (event: ConsultationRealtimeEvent) => {
+      if (event.type === "heartbeat") {
+        return;
+      }
+
+      if (state.kind !== "ready") {
+        void refresh();
+        return;
+      }
+
+      const applyUpdate = (appointments: Appointment[]) => {
+        if ("appointment" in event && event.appointment) {
+          return upsertAppointment(appointments, event.appointment);
+        }
+        if ("appointmentId" in event && event.appointmentId) {
+          return removeAppointment(appointments, event.appointmentId);
+        }
+        return appointments;
+      };
+
+      setState((current) => {
+        if (current.kind !== "ready") {
+          return current;
+        }
+
+        const nextAppointments = applyUpdate(current.appointments);
+        return {
+          kind: "ready",
+          appointments: nextAppointments,
+        };
+      });
+    },
+    [refresh, state.kind]
+  );
+
+  const handleRealtimeError = useCallback(
+    (error: Error) => {
+      console.error("[doctor] Consultation realtime stream error", error);
+      const now = Date.now();
+      if (now - lastRealtimeErrorAtRef.current > 60000) {
+        lastRealtimeErrorAtRef.current = now;
+        toast.error("Live updates interrupted", {
+          description: "We’re trying to reconnect. Use Refresh to stay in sync in the meantime.",
+        });
+      }
+      void refresh();
+    },
+    [refresh]
+  );
+
+  const connectionState = useConsultationRealtime({
+    token: token ?? null,
+    enabled: Boolean(token && doctor),
+    onEvent: handleRealtimeEvent,
+    onError: handleRealtimeError,
+  });
+
+  useEffect(() => {
+    if (state.kind !== "ready" && connectionState === "open") {
+      void refresh();
+    }
+  }, [connectionState, refresh, state.kind]);
 
   const handleStatusUpdate = useCallback(
     async (appointment: Appointment, status: AppointmentStatus, options?: Parameters<typeof doctorAppointmentsApi.updateStatus>[1]) => {
@@ -221,6 +305,33 @@ export const ConsultationQueue = () => {
     });
   };
 
+  const connectionBadge = useMemo(() => {
+    switch (connectionState) {
+      case "open":
+        return { variant: "secondary" as const, label: "Live" };
+      case "connecting":
+        return { variant: "outline" as const, label: "Connecting…" };
+      case "error":
+        return { variant: "destructive" as const, label: "Reconnecting…" };
+      case "closed":
+        return { variant: "outline" as const, label: "Paused" };
+      case "idle":
+      default:
+        return { variant: "outline" as const, label: "Offline" };
+    }
+  }, [connectionState]);
+
+  useEffect(() => {
+    if (!workspaceAppointment || state.kind !== "ready") {
+      return;
+    }
+
+    const latest = state.appointments.find((item) => item._id === workspaceAppointment._id);
+    if (latest && latest !== workspaceAppointment) {
+      setWorkspaceAppointment(latest);
+    }
+  }, [state, workspaceAppointment]);
+
   return (
     <Card className="rounded-lg border border-border bg-card shadow-sm">
       <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -233,16 +344,21 @@ export const ConsultationQueue = () => {
             Monitor today&apos;s visits, jump into telehealth sessions, and access visit notes at a glance.
           </CardDescription>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="gap-2 rounded-full px-3 text-xs"
-          onClick={() => refresh()}
-          disabled={state.kind === "loading"}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${state.kind === "loading" ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-2 rounded-full px-3 text-xs"
+            onClick={() => refresh()}
+            disabled={state.kind === "loading"}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${state.kind === "loading" ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Badge variant={connectionBadge.variant} className="rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.3em]">
+            {connectionBadge.label}
+          </Badge>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -375,6 +491,16 @@ export const ConsultationQueue = () => {
                             Complete visit
                           </Button>
                         ) : null}
+                        {(appointment.status === "checked-in" || appointment.status === "in-session") && (
+                          <Button
+                            variant="outline"
+                            className="rounded-full px-4 text-xs"
+                            onClick={() => setWorkspaceAppointment(appointment)}
+                            disabled={disableActions}
+                          >
+                            Open workspace
+                          </Button>
+                        )}
                         {showUpdateNotes ? (
                           <Button
                             variant="outline"
@@ -403,13 +529,21 @@ export const ConsultationQueue = () => {
         </Tabs>
 
         {activeFilter === "today" && upcomingCount > 0 ? (
-          <Alert className="rounded-2xl bg-primary/5 text-xs text-primary">
-            <AlertTitle>Heads up</AlertTitle>
-            <AlertDescription>
-              Patients now receive email updates for each status change. Refresh to stay in sync while real-time updates
-              roll out.
-            </AlertDescription>
-          </Alert>
+          connectionState === "open" ? (
+            <Alert className="rounded-2xl bg-primary/5 text-xs text-primary">
+              <AlertTitle>Live updates on</AlertTitle>
+              <AlertDescription>
+                Consultation changes will flow in automatically. We&apos;ll keep this view current while you work.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert className="rounded-2xl text-xs">
+              <AlertTitle>Live updates paused</AlertTitle>
+              <AlertDescription>
+                We&apos;re retrying the connection. Use Refresh if you need an immediate update.
+              </AlertDescription>
+            </Alert>
+          )
         ) : null}
       </CardContent>
 
@@ -483,6 +617,27 @@ export const ConsultationQueue = () => {
               Confirm no-show
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(workspaceAppointment)}
+        onOpenChange={(open) => (!open ? setWorkspaceAppointment(null) : undefined)}
+      >
+        <DialogContent className="max-w-3xl">
+          {workspaceAppointment ? (
+            <ConsultationWorkspace
+              appointment={workspaceAppointment}
+              isSaving={processingId === workspaceAppointment._id}
+              onClose={() => setWorkspaceAppointment(null)}
+              onSubmit={async (status, payload) => {
+                await handleStatusUpdate(workspaceAppointment, status, payload);
+                if (status === "completed") {
+                  setWorkspaceAppointment(null);
+                }
+              }}
+            />
+          ) : null}
         </DialogContent>
       </Dialog>
     </Card>

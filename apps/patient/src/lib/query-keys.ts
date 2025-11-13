@@ -7,5 +7,7 @@ export const queryKeys = {
   appointments: (filters?: Record<string, unknown>) => ["appointments", filters] as const,
   patientProfile: ["patient-profile"] as const,
   statsOverview: ["stats", "overview"] as const,
+  notificationPreferences: ["patient-notification-preferences"] as const,
+  notificationHistory: ["patient-notification-history"] as const,
 };
 

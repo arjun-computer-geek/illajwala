@@ -15,8 +15,8 @@ type InternalJwtPayload = TokenPayload & {
 const ACCESS_TOKEN_SECRET = env.JWT_SECRET as Secret;
 const REFRESH_TOKEN_SECRET = env.REFRESH_JWT_SECRET as Secret;
 
-const accessTokenOptions: SignOptions = { expiresIn: env.JWT_EXPIRY };
-const refreshTokenOptions: SignOptions = { expiresIn: env.REFRESH_JWT_EXPIRY };
+const accessTokenOptions = { expiresIn: env.JWT_EXPIRY } as SignOptions;
+const refreshTokenOptions = { expiresIn: env.REFRESH_JWT_EXPIRY } as SignOptions;
 
 const parseSeconds = (input: string): number => {
   const trimmed = input.trim();
@@ -32,7 +32,11 @@ const parseSeconds = (input: string): number => {
   }
 
   const value = Number(match[1]);
-  const unit = match[2].toLowerCase();
+  const unitRaw = match[2];
+  if (!unitRaw) {
+    return 7 * 24 * 60 * 60;
+  }
+  const unit = unitRaw.toLowerCase();
 
   switch (unit) {
     case "s":

@@ -16,6 +16,7 @@ import { createOrder, verifyPaymentSignature, type RazorpayOrderResponse } from 
 import type { AppointmentDocument } from "./appointment.model";
 import { publishConsultationEvent } from "../events/consultation-events.publisher";
 import type { ConsultationEventType } from "@illajwala/types";
+import { PatientModel, defaultNotificationPreferences } from "../patients/patient.model";
 
 type Requester = AuthenticatedRequest["user"];
 
@@ -275,10 +276,20 @@ export const updateAppointmentStatus = async (
       consultation.followUpActions = payload.consultation.followUpActions;
     }
     if (payload.consultation.vitals) {
-      consultation.vitals = payload.consultation.vitals;
+      consultation.vitals = payload.consultation.vitals.map((entry) => ({
+        label: entry.label,
+        value: entry.value,
+        ...(entry.unit !== undefined ? { unit: entry.unit } : {}),
+      }));
     }
     if (payload.consultation.attachments) {
-      consultation.attachments = payload.consultation.attachments;
+      consultation.attachments = payload.consultation.attachments.map((attachment) => ({
+        key: attachment.key,
+        name: attachment.name,
+        ...(attachment.url !== undefined ? { url: attachment.url } : {}),
+        ...(attachment.contentType !== undefined ? { contentType: attachment.contentType } : {}),
+        ...(attachment.sizeInBytes !== undefined ? { sizeInBytes: attachment.sizeInBytes } : {}),
+      }));
     }
   }
 
@@ -354,23 +365,40 @@ const maybePublishConsultationEvent = async ({
   }
 
   const doctor = appointment.doctor as unknown as { _id: string; name?: string };
-  const patient = appointment.patient as unknown as { _id: string; name?: string; email?: string };
+  const patient = appointment.patient as unknown as { _id: string; name?: string; email?: string; phone?: string };
+  const patientId = patient?._id?.toString() ?? String(appointment.patient);
 
-  await publishConsultationEvent({
+  const patientRecord = await PatientModel.findById(patientId)
+    .select("phone notificationPreferences")
+    .lean();
+
+  const patientPhone = patient?.phone ?? patientRecord?.phone ?? undefined;
+  const notificationPreferences = patientRecord?.notificationPreferences ?? defaultNotificationPreferences;
+
+  const payload = {
     type: eventType,
-    appointmentId: appointment._id.toString(),
+    appointmentId: String(appointment._id),
     doctorId: doctor?._id?.toString() ?? String(appointment.doctor),
-    doctorName: doctor?.name,
     patientId: patient?._id?.toString() ?? String(appointment.patient),
-    patientName: patient?.name,
-    patientEmail: patient?.email,
     scheduledAt: appointment.scheduledAt.toISOString(),
-    metadata: appointment.consultation
+    ...(doctor?.name ? { doctorName: doctor.name } : {}),
+    ...(patient?.name ? { patientName: patient.name } : {}),
+    ...(patient?.email ? { patientEmail: patient.email } : {}),
+    ...(patientPhone ? { patientPhone } : {}),
+    notificationPreferences,
+  };
+
+  const metadata =
+    appointment.consultation && (appointment.consultation.followUpActions || appointment.consultation.notes)
       ? {
           followUpActions: appointment.consultation.followUpActions,
           notes: appointment.consultation.notes,
         }
-      : undefined,
+      : undefined;
+
+  await publishConsultationEvent({
+    ...payload,
+    ...(metadata ? { metadata } : {}),
   });
 };
 

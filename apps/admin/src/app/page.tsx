@@ -120,7 +120,7 @@ export default function AdminHome() {
                     <Button asChild className="px-7 text-base">
                       <Link href="/dashboard">Go to admin dashboard</Link>
                     </Button>
-                    <Button variant="outline" className="px-6 text-base" onClick={clearAuth}>
+                    <Button variant="outline" className="px-6 text-base" onClick={() => clearAuth()}>
                       Sign out {admin ? `(${admin.email})` : ""}
                     </Button>
                   </>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { objectIdSchema } from "./common";
+import { notificationPreferencesSchema } from "./patients";
 
 export const consultationEventTypeSchema = z.enum([
   "consultation.checked-in",
@@ -16,8 +17,10 @@ export const consultationEventSchema = z.object({
   patientId: objectIdSchema,
   patientName: z.string().optional(),
   patientEmail: z.string().email().optional(),
+  patientPhone: z.string().optional(),
   scheduledAt: z.string(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  notificationPreferences: notificationPreferencesSchema.optional(),
 });
 
 export type ConsultationEventType = z.infer<typeof consultationEventTypeSchema>;

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Router as ExpressRouter } from "express";
 import {
   handleLoginDoctor,
   handleLoginPatient,
@@ -15,7 +16,7 @@ import {
   registerPatientSchema,
 } from "./auth.schema";
 
-export const authRouter = Router();
+export const authRouter: ExpressRouter = Router();
 
 authRouter.post(
   "/patient/register",

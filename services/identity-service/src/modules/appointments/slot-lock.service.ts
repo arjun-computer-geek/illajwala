@@ -7,7 +7,14 @@ const toRedisKey = (doctorId: string, scheduledAt: Date) =>
 
 export const acquireSlotLock = async (doctorId: string, scheduledAt: Date, ttlSeconds: number) => {
   const key = toRedisKey(doctorId, scheduledAt);
-  const response = await redis.set(key, "locked", "NX", "EX", ttlSeconds);
+  const response = await redis.set(
+    key,
+    "locked",
+    {
+      EX: ttlSeconds,
+      NX: true,
+    } as any
+  );
   return response === "OK";
 };
 

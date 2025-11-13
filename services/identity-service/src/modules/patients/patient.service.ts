@@ -1,4 +1,8 @@
-import { PatientModel } from "./patient.model";
+import {
+  PatientModel,
+  defaultNotificationPreferences,
+  type PatientNotificationPreferences,
+} from "./patient.model";
 import type { CreatePatientInput, UpdatePatientInput, AddDependentInput } from "./patient.schema";
 import { hashPassword } from "../../utils/password";
 
@@ -11,6 +15,7 @@ export const createPatient = async (payload: CreatePatientInput) => {
     passwordHash,
     dateOfBirth: payload.dateOfBirth,
     gender: payload.gender,
+    notificationPreferences: defaultNotificationPreferences,
   });
 };
 
@@ -37,4 +42,37 @@ export const removeDependent = async (patientId: string, dependentName: string) 
     { $pull: { dependents: { name: dependentName } } },
     { new: true, runValidators: true }
   ).select("-passwordHash");
+
+export const getNotificationPreferences = async (patientId: string) => {
+  const patient = await PatientModel.findById(patientId).select("notificationPreferences");
+  return patient?.notificationPreferences ?? defaultNotificationPreferences;
+};
+
+type NotificationPreferencesPatch = {
+  [K in keyof PatientNotificationPreferences]?: PatientNotificationPreferences[K] | undefined;
+};
+
+export const updateNotificationPreferences = async (
+  patientId: string,
+  payload: NotificationPreferencesPatch
+) => {
+  const update: Record<string, unknown> = {};
+  if (payload.emailReminders !== undefined) {
+    update["notificationPreferences.emailReminders"] = payload.emailReminders;
+  }
+  if (payload.smsReminders !== undefined) {
+    update["notificationPreferences.smsReminders"] = payload.smsReminders;
+  }
+  if (payload.whatsappReminders !== undefined) {
+    update["notificationPreferences.whatsappReminders"] = payload.whatsappReminders;
+  }
+
+  const patient = await PatientModel.findByIdAndUpdate(
+    patientId,
+    Object.keys(update).length > 0 ? { $set: update } : {},
+    { new: true, runValidators: true }
+  ).select("notificationPreferences");
+
+  return patient?.notificationPreferences ?? defaultNotificationPreferences;
+};
 

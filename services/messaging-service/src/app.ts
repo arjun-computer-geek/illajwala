@@ -1,5 +1,6 @@
 import express from "express";
 import type { Request, Response } from "express";
+import { metricsHandler } from "./modules/metrics";
 
 /**
  * Messaging service API skeleton.
@@ -16,6 +17,8 @@ export const createApp = () => {
   app.get("/health", (_req: Request, res: Response) => {
     res.json({ status: "ok", service: "messaging-service" });
   });
+
+  app.get("/metrics", metricsHandler);
 
   return app;
 };

@@ -12,7 +12,7 @@ export const getMailer = (logger: Logger): Transporter => {
   }
 
   if (!emailConfig) {
-    logger.warn("SMTP configuration missing; falling back to console log notifications.");
+    logger.warn({ msg: "SMTP configuration missing; falling back to console log notifications." });
     transporter = null;
     return transporter;
   }

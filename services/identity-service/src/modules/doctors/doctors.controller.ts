@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import { StatusCodes } from "http-status-codes";
 import { successResponse, paginateResponse } from "../../utils/api-response";
 import { catchAsync } from "../../utils/catch-async";
@@ -25,7 +25,7 @@ import {
 } from "./doctor.service";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 
-export const handleListSpecialties = catchAsync(async (_req: Request, res: Response) => {
+export const handleListSpecialties: RequestHandler = catchAsync(async (_req: Request, res: Response) => {
   const specialties = await listDoctorSpecialties();
   return res.json(successResponse(specialties));
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -78,7 +78,15 @@ export default function AdminLoginPage() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              <AdminLoginForm />
+              <Suspense
+                fallback={
+                  <div className="flex h-20 items-center justify-center rounded-lg border border-border/60 bg-muted/20 text-sm text-muted-foreground">
+                    Preparing login form…
+                  </div>
+                }
+              >
+                <AdminLoginForm />
+              </Suspense>
 
               <Separator />
 

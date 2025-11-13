@@ -7,6 +7,18 @@ export interface Dependent {
   gender?: "male" | "female" | "other";
 }
 
+export interface PatientNotificationPreferences {
+  emailReminders: boolean;
+  smsReminders: boolean;
+  whatsappReminders: boolean;
+}
+
+export const defaultNotificationPreferences: PatientNotificationPreferences = {
+  emailReminders: true,
+  smsReminders: true,
+  whatsappReminders: false,
+};
+
 export interface PatientDocument extends Document {
   name: string;
   email: string;
@@ -16,6 +28,7 @@ export interface PatientDocument extends Document {
   gender?: "male" | "female" | "other";
   medicalHistory?: string[];
   dependents: Dependent[];
+  notificationPreferences: PatientNotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +53,11 @@ const PatientSchema = new Schema<PatientDocument>(
     gender: { type: String, enum: ["male", "female", "other"] },
     medicalHistory: [{ type: String }],
     dependents: { type: [DependentSchema], default: [] },
+    notificationPreferences: {
+      emailReminders: { type: Boolean, default: defaultNotificationPreferences.emailReminders },
+      smsReminders: { type: Boolean, default: defaultNotificationPreferences.smsReminders },
+      whatsappReminders: { type: Boolean, default: defaultNotificationPreferences.whatsappReminders },
+    },
   },
   { timestamps: true }
 );

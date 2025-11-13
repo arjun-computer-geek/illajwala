@@ -4,11 +4,13 @@ import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { successResponse } from "../../utils/api-response";
 import { catchAsync } from "../../utils/catch-async";
 import { AppError } from "../../utils/app-error";
-import type { AddDependentInput, UpdatePatientInput } from "./patient.schema";
+import type { AddDependentInput, UpdateNotificationPreferencesInput, UpdatePatientInput } from "./patient.schema";
 import {
   addDependent,
   getPatientById,
+  getNotificationPreferences,
   removeDependent,
+  updateNotificationPreferences,
   updatePatientProfile,
 } from "./patient.service";
 
@@ -72,4 +74,26 @@ export const handleRemoveDependent = catchAsync<{ name: string }>(
     return res.json(successResponse(patient, "Dependent removed"));
   }
 );
+
+export const handleGetNotificationPreferences = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+  }
+
+  const preferences = await getNotificationPreferences(req.user.id);
+  return res.json(successResponse(preferences));
+});
+
+export const handleUpdateNotificationPreferences = catchAsync<
+  Record<string, never>,
+  unknown,
+  UpdateNotificationPreferencesInput
+>(async (req: AuthenticatedRequest<Record<string, never>, unknown, UpdateNotificationPreferencesInput>, res: Response) => {
+  if (!req.user) {
+    throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
+  }
+
+  const preferences = await updateNotificationPreferences(req.user.id, req.body);
+  return res.json(successResponse(preferences, "Notification preferences updated"));
+});
 

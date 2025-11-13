@@ -40,7 +40,11 @@ export const doctorSchema = z.object({
   highlighted: z.boolean().optional(),
   reviewStatus: doctorReviewStatusSchema.default("pending"),
   reviewNotes: z.array(doctorReviewNoteSchema).default([]),
-  onboardingChecklist: doctorOnboardingChecklistSchema.default({}),
+  onboardingChecklist: doctorOnboardingChecklistSchema.default(() => ({
+    kycComplete: false,
+    payoutSetupComplete: false,
+    telehealthReady: false,
+  })),
   lastReviewedAt: z.string().nullable().optional(),
   approvedAt: z.string().nullable().optional(),
 });
