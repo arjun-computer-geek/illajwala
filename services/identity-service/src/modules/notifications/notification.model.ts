@@ -6,6 +6,7 @@ import type { NotificationChannel } from "@illajwala/types";
 export type NotificationStatus = "queued" | "sent" | "delivered" | "failed";
 
 export interface NotificationAuditDocument extends Document {
+  tenantId: string;
   channel: NotificationChannel;
   template?: string | null;
   recipient?: string | null;
@@ -20,6 +21,7 @@ export interface NotificationAuditDocument extends Document {
 
 const NotificationAuditSchema = new Schema<NotificationAuditDocument>(
   {
+    tenantId: { type: String, required: true, index: true, trim: true },
     channel: {
       type: String,
       enum: ["email", "sms", "whatsapp"],
@@ -41,7 +43,7 @@ const NotificationAuditSchema = new Schema<NotificationAuditDocument>(
   { timestamps: true }
 );
 
-NotificationAuditSchema.index({ createdAt: -1 });
+NotificationAuditSchema.index({ tenantId: 1, createdAt: -1 });
 
 export const NotificationAuditModel = model<NotificationAuditDocument>(
   "NotificationAudit",

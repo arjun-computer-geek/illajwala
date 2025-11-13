@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { objectIdSchema } from "./common";
+import { objectIdSchema, tenantIdSchema } from "./common";
 
 export const adminSchema = z.object({
   _id: objectIdSchema,
   name: z.string(),
   email: z.string().email(),
   role: z.literal("admin").default("admin"),
+  tenantId: tenantIdSchema.optional(),
 });
 
 export type AdminProfile = z.infer<typeof adminSchema>;
@@ -49,5 +50,6 @@ export type NotificationAuditEntry = {
   createdAt: string;
   actor?: string | null;
   reason?: string | null;
+  tenantId?: string;
 };
 

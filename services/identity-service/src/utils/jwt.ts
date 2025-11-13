@@ -3,9 +3,10 @@ import { env } from "../config/env";
 
 export type TokenRole = "patient" | "doctor" | "admin";
 
-type TokenPayload = {
+export type TokenPayload = {
   sub: string;
   role: TokenRole;
+  tenantId?: string | null;
 };
 
 type InternalJwtPayload = TokenPayload & {
@@ -69,12 +70,20 @@ export const signRefreshToken = (payload: TokenPayload) =>
 export const verifyAccessToken = (token: string): TokenPayload => {
   const payload = verify(token, ACCESS_TOKEN_SECRET) as InternalJwtPayload;
   assertTokenType(payload, "access");
-  return { sub: payload.sub, role: payload.role };
+  const result: TokenPayload = { sub: payload.sub, role: payload.role };
+  if (payload.tenantId !== undefined) {
+    result.tenantId = payload.tenantId ?? null;
+  }
+  return result;
 };
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
   const payload = verify(token, REFRESH_TOKEN_SECRET) as InternalJwtPayload;
   assertTokenType(payload, "refresh");
-  return { sub: payload.sub, role: payload.role };
+  const result: TokenPayload = { sub: payload.sub, role: payload.role };
+  if (payload.tenantId !== undefined) {
+    result.tenantId = payload.tenantId ?? null;
+  }
+  return result;
 };
 

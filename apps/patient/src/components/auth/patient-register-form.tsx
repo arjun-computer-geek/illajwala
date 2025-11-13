@@ -50,8 +50,8 @@ export const PatientRegisterForm = () => {
     const { confirmPassword, ...payload } = values;
     void confirmPassword;
     try {
-      const { token, patient } = await authApi.registerPatient(payload);
-      setAuth({ token, role: "patient", patient });
+      const { token, patient, tenantId } = await authApi.registerPatient(payload);
+      setAuth({ token, role: "patient", patient, tenantId });
       toast.success(`Welcome to illajwala, ${patient.name}!`);
       router.push("/account/appointments");
     } catch (error) {

@@ -8,6 +8,7 @@ const consultationQueue = new Queue<ConsultationEvent>("consultation-events", {
 
 type PublishConsultationEventInput = {
   type: ConsultationEventType;
+  tenantId: string;
   appointmentId: string;
   doctorId: string;
   doctorName?: string;

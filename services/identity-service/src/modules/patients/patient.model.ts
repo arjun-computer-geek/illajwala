@@ -20,6 +20,7 @@ export const defaultNotificationPreferences: PatientNotificationPreferences = {
 };
 
 export interface PatientDocument extends Document {
+  tenantId: string;
   name: string;
   email: string;
   phone: string;
@@ -45,9 +46,10 @@ const DependentSchema = new Schema<Dependent>(
 
 const PatientSchema = new Schema<PatientDocument>(
   {
+    tenantId: { type: String, required: true, index: true, trim: true },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    phone: { type: String, required: true, unique: true },
+    email: { type: String, required: true, lowercase: true, index: true },
+    phone: { type: String, required: true, index: true },
     passwordHash: { type: String, required: true },
     dateOfBirth: Date,
     gender: { type: String, enum: ["male", "female", "other"] },
@@ -62,8 +64,8 @@ const PatientSchema = new Schema<PatientDocument>(
   { timestamps: true }
 );
 
-PatientSchema.index({ email: 1 });
-PatientSchema.index({ phone: 1 });
+PatientSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+PatientSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
 
 export const PatientModel = model<PatientDocument>("Patient", PatientSchema);
 

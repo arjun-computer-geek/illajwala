@@ -4,6 +4,7 @@ import {
   consultationModeSchema,
   objectIdSchema,
   ratingSchema,
+  tenantIdSchema,
 } from "./common";
 
 export const doctorReviewStatusSchema = z.enum(["pending", "needs-info", "approved", "active"]);
@@ -27,6 +28,7 @@ export const doctorSchema = z.object({
   name: z.string(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  tenantId: tenantIdSchema,
   specialization: z.string(),
   about: z.string().optional(),
   languages: z.array(z.string()).default([]),

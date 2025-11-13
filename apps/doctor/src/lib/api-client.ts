@@ -71,12 +71,14 @@ const refreshAccessToken = async (): Promise<string | null> => {
     const result = tokenRefreshResponseSchema.parse(response.data.data);
 
     setDoctorAuthToken(result.token);
+    setDoctorTenant(result.tenantId ?? null);
     notifyRefreshListeners(result);
 
     return result.token;
   } catch (error) {
     console.warn("[doctor-api] Refresh token request failed:", error);
     setDoctorAuthToken(null);
+    setDoctorTenant(null);
     notifyUnauthorizedListeners();
     return null;
   }
@@ -90,6 +92,7 @@ export const doctorApiClient = createApiClient({
   onUnauthorized: () => {
     console.warn("[doctor-api] Unauthorized response received, clearing session token");
     setDoctorAuthToken(null);
+    setDoctorTenant(null);
     notifyUnauthorizedListeners();
   },
 });

@@ -22,8 +22,11 @@ export const ratingSchema = z
   .max(5)
   .nullish();
 
+export const tenantIdSchema = z.string().min(1, "Tenant identifier is required");
+
 export type ObjectIdString = z.infer<typeof objectIdSchema>;
 export type Gender = z.infer<typeof genderSchema>;
 export type ConsultationMode = z.infer<typeof consultationModeSchema>;
 export type ClinicLocation = z.infer<typeof clinicLocationSchema>;
+export type TenantId = z.infer<typeof tenantIdSchema>;
 

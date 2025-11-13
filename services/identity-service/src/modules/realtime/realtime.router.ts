@@ -7,6 +7,7 @@ import { requireAuth } from "../../middlewares/auth";
 import { getOpsMetricsSummary } from "../analytics/analytics.service";
 import { AppointmentModel } from "../appointments/appointment.model";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
+import { requireTenantId } from "../../utils/tenant";
 
 const setupSse = (res: Response) => {
   res.setHeader("Content-Type", "text/event-stream");
@@ -150,13 +151,14 @@ realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) 
     res.flushHeaders?.();
 
     const connectionId = randomUUID();
+    const tenantId = requireTenantId(req);
 
     const sendEvent = (data: unknown) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
     const publishMetrics = async () => {
-      const metrics = await getOpsMetricsSummary();
+      const metrics = await getOpsMetricsSummary(tenantId);
       sendEvent({
         type: "metrics.updated",
         metrics,
@@ -202,10 +204,16 @@ realtimeRouter.get("/consultations", requireAuth(["doctor"]), async (req: Authen
       throw new Error("Doctor context missing");
     }
 
+    const tenantId = req.user?.tenantId;
+
+    if (!tenantId) {
+      throw new Error("Tenant context missing");
+    }
+
     const cleanup = registerAppointmentStream({
       res,
       fetchAppointments: async () => {
-        const results = await AppointmentModel.find({ doctor: doctorId })
+        const results = await AppointmentModel.find({ tenantId, doctor: doctorId })
           .populate("patient", "name email phone")
           .populate("doctor", "name specialization consultationModes fee clinicLocations")
           .sort({ scheduledAt: 1 })
@@ -235,10 +243,16 @@ realtimeRouter.get("/appointments", requireAuth(["patient"]), async (req: Authen
       throw new Error("Patient context missing");
     }
 
+    const tenantId = req.user?.tenantId;
+
+    if (!tenantId) {
+      throw new Error("Tenant context missing");
+    }
+
     const cleanup = registerAppointmentStream({
       res,
       fetchAppointments: async () => {
-        const results = await AppointmentModel.find({ patient: patientId })
+        const results = await AppointmentModel.find({ tenantId, patient: patientId })
           .populate("patient", "name email phone")
           .populate("doctor", "name specialization consultationModes fee clinicLocations")
           .sort({ scheduledAt: 1 })

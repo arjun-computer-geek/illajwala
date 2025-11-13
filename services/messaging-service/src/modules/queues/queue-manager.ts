@@ -27,6 +27,7 @@ export const createQueueManager = () => {
     connection,
   });
   const notificationResendQueue = new Queue<{
+    tenantId: string;
     auditId: string;
     channel: NotificationChannel;
     payload: string;

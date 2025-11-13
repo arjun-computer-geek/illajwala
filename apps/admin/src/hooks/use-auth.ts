@@ -6,6 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import type { AdminAuthResponse, AdminProfile, TokenRefreshResponse } from "@illajwala/types";
 import {
   setAdminAuthToken,
+  setAdminTenant,
   subscribeAdminRefresh,
   subscribeAdminUnauthorized,
 } from "../lib/api-client";
@@ -28,13 +29,15 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       token: null,
       admin: null,
       hydrated: false,
-      setAuth: ({ token, admin }) => {
+      setAuth: ({ token, admin, tenantId }) => {
         set({ token, admin });
         setAdminAuthToken(token, { silent: true });
+        setAdminTenant(tenantId ?? null);
       },
       clearAuth: (options) => {
         set({ token: null, admin: null });
         setAdminAuthToken(null, { silent: true });
+        setAdminTenant(null);
         if (!options?.skipRemote) {
           void adminAuthApi.logout().catch((error) => {
             console.warn("[admin-auth] Failed to logout remotely", error);
@@ -49,6 +52,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) {
           setAdminAuthToken(state.token ?? null, { silent: true });
+          setAdminTenant(state.admin?.tenantId ?? null);
         }
         state?.setHydrated?.();
       },
@@ -62,6 +66,7 @@ const handleAdminRefresh = (payload: TokenRefreshResponse) => {
   }
 
   setAdminAuthToken(payload.token, { silent: true });
+  setAdminTenant(payload.tenantId ?? null);
   useAdminAuthStore.setState({
     token: payload.token,
     admin: payload.admin,

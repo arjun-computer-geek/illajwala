@@ -6,9 +6,10 @@ import {
 import type { CreatePatientInput, UpdatePatientInput, AddDependentInput } from "./patient.schema";
 import { hashPassword } from "../../utils/password";
 
-export const createPatient = async (payload: CreatePatientInput) => {
+export const createPatient = async (payload: CreatePatientInput, tenantId: string) => {
   const passwordHash = await hashPassword(payload.password);
   return PatientModel.create({
+    tenantId,
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
@@ -19,32 +20,34 @@ export const createPatient = async (payload: CreatePatientInput) => {
   });
 };
 
-export const getPatientByEmail = async (email: string) =>
-  PatientModel.findOne({ email }).select("-passwordHash");
+export const getPatientByEmail = async (email: string, tenantId: string) =>
+  PatientModel.findOne({ email, tenantId }).select("-passwordHash");
 
-export const getPatientById = async (id: string) => PatientModel.findById(id).select("-passwordHash");
+export const getPatientById = async (id: string, tenantId: string) =>
+  PatientModel.findOne({ _id: id, tenantId }).select("-passwordHash");
 
-export const updatePatientProfile = async (id: string, payload: UpdatePatientInput) =>
-  PatientModel.findByIdAndUpdate(id, payload, { new: true, runValidators: true }).select(
-    "-passwordHash"
-  );
+export const updatePatientProfile = async (id: string, tenantId: string, payload: UpdatePatientInput) =>
+  PatientModel.findOneAndUpdate({ _id: id, tenantId }, payload, {
+    new: true,
+    runValidators: true,
+  }).select("-passwordHash");
 
-export const addDependent = async (patientId: string, dependent: AddDependentInput) =>
-  PatientModel.findByIdAndUpdate(
-    patientId,
+export const addDependent = async (patientId: string, tenantId: string, dependent: AddDependentInput) =>
+  PatientModel.findOneAndUpdate(
+    { _id: patientId, tenantId },
     { $push: { dependents: dependent } },
     { new: true, runValidators: true }
   ).select("-passwordHash");
 
-export const removeDependent = async (patientId: string, dependentName: string) =>
-  PatientModel.findByIdAndUpdate(
-    patientId,
+export const removeDependent = async (patientId: string, tenantId: string, dependentName: string) =>
+  PatientModel.findOneAndUpdate(
+    { _id: patientId, tenantId },
     { $pull: { dependents: { name: dependentName } } },
     { new: true, runValidators: true }
   ).select("-passwordHash");
 
-export const getNotificationPreferences = async (patientId: string) => {
-  const patient = await PatientModel.findById(patientId).select("notificationPreferences");
+export const getNotificationPreferences = async (patientId: string, tenantId: string) => {
+  const patient = await PatientModel.findOne({ _id: patientId, tenantId }).select("notificationPreferences");
   return patient?.notificationPreferences ?? defaultNotificationPreferences;
 };
 
@@ -54,6 +57,7 @@ type NotificationPreferencesPatch = {
 
 export const updateNotificationPreferences = async (
   patientId: string,
+  tenantId: string,
   payload: NotificationPreferencesPatch
 ) => {
   const update: Record<string, unknown> = {};
@@ -67,8 +71,8 @@ export const updateNotificationPreferences = async (
     update["notificationPreferences.whatsappReminders"] = payload.whatsappReminders;
   }
 
-  const patient = await PatientModel.findByIdAndUpdate(
-    patientId,
+  const patient = await PatientModel.findOneAndUpdate(
+    { _id: patientId, tenantId },
     Object.keys(update).length > 0 ? { $set: update } : {},
     { new: true, runValidators: true }
   ).select("notificationPreferences");

@@ -25,6 +25,7 @@ export interface OnboardingChecklist {
 }
 
 export interface DoctorDocument extends Document {
+  tenantId: string;
   name: string;
   email: string;
   phone: string;
@@ -78,9 +79,10 @@ const OnboardingChecklistSchema = new Schema<OnboardingChecklist>(
 
 const DoctorSchema = new Schema<DoctorDocument>(
   {
+    tenantId: { type: String, required: true, index: true, trim: true },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    phone: { type: String, required: true, unique: true },
+    email: { type: String, required: true, lowercase: true, index: true },
+    phone: { type: String, required: true, index: true },
     specialization: { type: String, required: true },
     about: String,
     languages: { type: [String], default: [] },
@@ -107,9 +109,12 @@ const DoctorSchema = new Schema<DoctorDocument>(
   { timestamps: true }
 );
 
-DoctorSchema.index({ specialization: 1 });
+DoctorSchema.index({ tenantId: 1 });
+DoctorSchema.index({ tenantId: 1, specialization: 1 });
 DoctorSchema.index({ name: "text", specialization: "text" });
-DoctorSchema.index({ reviewStatus: 1 });
+DoctorSchema.index({ tenantId: 1, reviewStatus: 1 });
+DoctorSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+DoctorSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
 
 export const DoctorModel = model<DoctorDocument>("Doctor", DoctorSchema);
 

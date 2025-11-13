@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clinicLocationSchema, genderSchema, objectIdSchema } from "./common";
+import { clinicLocationSchema, genderSchema, objectIdSchema, tenantIdSchema } from "./common";
 
 export const dependentSchema = z.object({
   name: z.string().min(1),
@@ -19,6 +19,7 @@ export const patientProfileSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   phone: z.string(),
+  tenantId: tenantIdSchema,
   dateOfBirth: z.string().optional(),
   gender: genderSchema.optional(),
   medicalHistory: z.array(z.string()).default([]),

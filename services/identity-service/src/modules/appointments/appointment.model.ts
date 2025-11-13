@@ -64,6 +64,7 @@ export interface AppointmentPayment {
 }
 
 export interface AppointmentDocument extends Document {
+  tenantId: string;
   patient: Types.ObjectId;
   doctor: Types.ObjectId;
   scheduledAt: Date;
@@ -79,6 +80,7 @@ export interface AppointmentDocument extends Document {
 
 const AppointmentSchema = new Schema<AppointmentDocument>(
   {
+    tenantId: { type: String, required: true, index: true, trim: true },
     patient: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
     doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
     scheduledAt: { type: Date, required: true },
@@ -152,9 +154,9 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
   { timestamps: true }
 );
 
-AppointmentSchema.index({ doctor: 1, scheduledAt: 1 });
-AppointmentSchema.index({ patient: 1, scheduledAt: -1 });
-AppointmentSchema.index({ status: 1, scheduledAt: -1 });
+AppointmentSchema.index({ tenantId: 1, doctor: 1, scheduledAt: 1 });
+AppointmentSchema.index({ tenantId: 1, patient: 1, scheduledAt: -1 });
+AppointmentSchema.index({ tenantId: 1, status: 1, scheduledAt: -1 });
 
 export const AppointmentModel = model<AppointmentDocument>("Appointment", AppointmentSchema);
 

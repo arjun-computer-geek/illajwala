@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 import {
   setAuthToken,
+  setTenantContext,
   subscribeAuthRefresh,
   subscribeUnauthorized,
 } from "@/lib/api-client";
@@ -13,9 +14,9 @@ import type { TokenRefreshResponse } from "@illajwala/types";
 export type UserRole = "patient" | "doctor" | "admin" | null;
 
 type AuthPayload =
-  | { token: string; role: "patient"; patient: PatientProfile }
-  | { token: string; role: "doctor"; doctor: Doctor }
-  | { token: string; role: "admin" };
+  | { token: string; role: "patient"; patient: PatientProfile; tenantId: string }
+  | { token: string; role: "doctor"; doctor: Doctor; tenantId: string }
+  | { token: string; role: "admin"; tenantId?: string };
 
 type AuthState = {
   token: string | null;
@@ -46,10 +47,12 @@ export const useAuthStore = create<AuthState>()(
           set({ ...base, patient: null, doctor: null });
         }
         setAuthToken(payload.token, { silent: true });
+        setTenantContext(payload.tenantId ?? null);
       },
       clearAuth: (options) => {
         set({ token: null, role: null, patient: null, doctor: null });
         setAuthToken(null, { silent: true });
+        setTenantContext(null);
         if (!options?.skipRemote) {
           void authApi.logout().catch((error) => {
             console.warn("[auth] Failed to logout remotely", error);
@@ -69,6 +72,9 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state, error) => {
         if (!error) {
           setAuthToken(state?.token ?? null, { silent: true });
+          const tenantFromState =
+            state?.patient?.tenantId ?? state?.doctor?.tenantId ?? (state?.role === "admin" ? null : null);
+          setTenantContext(tenantFromState ?? null);
         }
         state?.setHydrated?.();
       },
@@ -94,6 +100,7 @@ const applyRefreshPayload = (payload: TokenRefreshResponse) => {
   }
 
   setAuthToken(payload.token, { silent: true });
+  setTenantContext(payload.tenantId ?? null);
   useAuthStore.setState(nextState);
 };
 

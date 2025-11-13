@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { consultationModeSchema, objectIdSchema } from "./common";
+import { consultationModeSchema, objectIdSchema, tenantIdSchema } from "./common";
 import { doctorSchema } from "./doctors";
 import { patientProfileSchema } from "./patients";
 
@@ -72,6 +72,7 @@ export const appointmentConsultationSchema = z.object({
 
 export const appointmentSchema = z.object({
   _id: objectIdSchema,
+  tenantId: tenantIdSchema,
   doctor: doctorSchema,
   patientId: objectIdSchema,
   // Populated subset of patient info useful for dashboards and reminders.

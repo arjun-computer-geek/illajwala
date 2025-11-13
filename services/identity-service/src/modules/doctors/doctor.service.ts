@@ -16,13 +16,14 @@ import type {
 import { AppointmentModel } from "../appointments/appointment.model";
 import { AppError } from "../../utils/app-error";
 
-export const createDoctor = async (payload: CreateDoctorInput) => DoctorModel.create(payload);
+export const createDoctor = async (payload: CreateDoctorInput, tenantId: string) =>
+  DoctorModel.create({ ...payload, tenantId });
 
-export const updateDoctor = async (id: string, payload: UpdateDoctorInput) =>
-  DoctorModel.findByIdAndUpdate(id, payload, { new: true });
+export const updateDoctor = async (id: string, tenantId: string, payload: UpdateDoctorInput) =>
+  DoctorModel.findOneAndUpdate({ _id: id, tenantId }, payload, { new: true });
 
-export const updateDoctorProfile = async (id: string, payload: DoctorProfileUpdateInput) => {
-  const doctor = await DoctorModel.findById(id);
+export const updateDoctorProfile = async (id: string, tenantId: string, payload: DoctorProfileUpdateInput) => {
+  const doctor = await DoctorModel.findOne({ _id: id, tenantId });
   if (!doctor) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
   }
@@ -55,18 +56,19 @@ export const updateDoctorProfile = async (id: string, payload: DoctorProfileUpda
   await doctor.save();
   return doctor;
 };
-export const getDoctorById = async (id: string) => DoctorModel.findById(id);
+export const getDoctorById = async (id: string, tenantId: string) =>
+  DoctorModel.findOne({ _id: id, tenantId });
 
-export const listDoctorSpecialties = async () => {
-  const specialties = await DoctorModel.distinct("specialization");
+export const listDoctorSpecialties = async (tenantId: string) => {
+  const specialties = await DoctorModel.distinct("specialization", { tenantId });
   return specialties.sort((a, b) => a.localeCompare(b));
 };
 
 const shouldUpdateApprovedAt = (status: DoctorReviewStatus) =>
   status === "approved" || status === "active";
 
-export const reviewDoctor = async (id: string, payload: DoctorReviewActionInput) => {
-  const doctorExists = await DoctorModel.findById(id);
+export const reviewDoctor = async (id: string, tenantId: string, payload: DoctorReviewActionInput) => {
+  const doctorExists = await DoctorModel.findOne({ _id: id, tenantId });
 
   if (!doctorExists) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
@@ -104,7 +106,7 @@ export const reviewDoctor = async (id: string, payload: DoctorReviewActionInput)
     };
   }
 
-  const updatedDoctor = await DoctorModel.findByIdAndUpdate(id, updateOps, {
+  const updatedDoctor = await DoctorModel.findOneAndUpdate({ _id: id, tenantId }, updateOps, {
     new: true,
     runValidators: true,
   });
@@ -112,9 +114,9 @@ export const reviewDoctor = async (id: string, payload: DoctorReviewActionInput)
   return updatedDoctor;
 };
 
-export const addDoctorReviewNote = async (id: string, payload: DoctorAddNoteInput) => {
-  const doctor = await DoctorModel.findByIdAndUpdate(
-    id,
+export const addDoctorReviewNote = async (id: string, tenantId: string, payload: DoctorAddNoteInput) => {
+  const doctor = await DoctorModel.findOneAndUpdate(
+    { _id: id, tenantId },
     {
       $push: {
         reviewNotes: {
@@ -138,26 +140,29 @@ export const addDoctorReviewNote = async (id: string, payload: DoctorAddNoteInpu
   return doctor;
 };
 
-export const searchDoctors = async ({
-  query,
-  specialization,
-  city,
-  consultationMode,
-  page = 1,
-  pageSize = 20,
-  featured,
-  sort,
-}: {
-  query?: string | undefined;
-  specialization?: string | undefined;
-  city?: string | undefined;
-  consultationMode?: string | undefined;
-  page?: number | undefined;
-  pageSize?: number | undefined;
-  featured?: boolean | undefined;
-  sort?: "rating" | "fee" | "experience" | undefined;
-}) => {
-  const filter: FilterQuery<DoctorDocument> = {};
+export const searchDoctors = async (
+  {
+    query,
+    specialization,
+    city,
+    consultationMode,
+    page = 1,
+    pageSize = 20,
+    featured,
+    sort,
+  }: {
+    query?: string | undefined;
+    specialization?: string | undefined;
+    city?: string | undefined;
+    consultationMode?: string | undefined;
+    page?: number | undefined;
+    pageSize?: number | undefined;
+    featured?: boolean | undefined;
+    sort?: "rating" | "fee" | "experience" | undefined;
+  },
+  tenantId: string
+) => {
+  const filter: FilterQuery<DoctorDocument> = { tenantId };
 
   if (query) {
     filter.$text = { $search: query };
@@ -242,9 +247,10 @@ export type DoctorAvailability = {
 
 export const getDoctorAvailability = async (
   id: string,
+  tenantId: string,
   params: DoctorAvailabilityParams
 ): Promise<DoctorAvailability | null> => {
-  const doctor = await DoctorModel.findById(id).lean();
+  const doctor = await DoctorModel.findOne({ _id: id, tenantId }).lean();
   if (!doctor) {
     return null;
   }
@@ -254,6 +260,7 @@ export const getDoctorAvailability = async (
   const end = addDays(today, totalDays);
 
   const appointments = await AppointmentModel.find({
+    tenantId,
     doctor: id,
     scheduledAt: { $gte: today, $lt: end },
     status: { $ne: "cancelled" },

@@ -9,6 +9,7 @@ import {
 import { adminAppConfig } from "./config";
 
 let authToken: string | null = null;
+let tenantId: string | null = null;
 
 type TokenListener = (token: string | null) => void;
 type RefreshListener = (payload: TokenRefreshResponse) => void;
@@ -56,6 +57,10 @@ export const setAdminAuthToken = (token: string | null, options?: SetTokenOption
   }
 };
 
+export const setAdminTenant = (id: string | null) => {
+  tenantId = id;
+};
+
 const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const response = await adminApiClient.post<ApiResponse<TokenRefreshResponse>>(
@@ -66,12 +71,14 @@ const refreshAccessToken = async (): Promise<string | null> => {
     const result = tokenRefreshResponseSchema.parse(response.data.data);
 
     setAdminAuthToken(result.token);
+    setAdminTenant(result.tenantId ?? null);
     notifyRefreshListeners(result);
 
     return result.token;
   } catch (error) {
     console.warn("[admin-api] Refresh token request failed:", error);
     setAdminAuthToken(null);
+    setAdminTenant(null);
     notifyUnauthorizedListeners();
     return null;
   }
@@ -80,10 +87,12 @@ const refreshAccessToken = async (): Promise<string | null> => {
 export const adminApiClient = createApiClient({
   baseURL: adminAppConfig.apiBaseUrl,
   getAuthToken: () => authToken,
+  getTenantId: () => tenantId,
   refreshAccessToken,
   onUnauthorized: () => {
     console.warn("[admin-api] Unauthorized response received, clearing auth token");
     setAdminAuthToken(null);
+    setAdminTenant(null);
     notifyUnauthorizedListeners();
   },
 });

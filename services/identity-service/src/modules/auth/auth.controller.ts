@@ -19,6 +19,7 @@ import {
 import { AppError } from "../../utils/app-error";
 import { refreshTokenMaxAgeSeconds } from "../../utils/jwt";
 import { isProd } from "../../config/env";
+import { requireTenantId } from "../../utils/tenant";
 
 const REFRESH_COOKIE_NAME = "illajwala_refresh_token";
 
@@ -56,7 +57,8 @@ export const handleRegisterPatient = catchAsync<
   unknown,
   RegisterPatientInput
 >(async (req: Request<Record<string, never>, unknown, RegisterPatientInput>, res: Response) => {
-  const result = await registerPatient(req.body);
+  const tenantId = requireTenantId(req);
+  const result = await registerPatient(req.body, tenantId);
   return respondWithAuth(res, result, "Patient registered", StatusCodes.CREATED);
 });
 
@@ -65,7 +67,8 @@ export const handleLoginPatient = catchAsync<
   unknown,
   LoginPatientInput
 >(async (req: Request<Record<string, never>, unknown, LoginPatientInput>, res: Response) => {
-  const result = await loginPatient(req.body);
+  const tenantId = requireTenantId(req);
+  const result = await loginPatient(req.body, tenantId);
   return respondWithAuth(res, result, "Patient logged in");
 });
 
@@ -74,7 +77,8 @@ export const handleLoginDoctor = catchAsync<
   unknown,
   LoginDoctorInput
 >(async (req: Request<Record<string, never>, unknown, LoginDoctorInput>, res: Response) => {
-  const result = await loginDoctor(req.body);
+  const tenantId = requireTenantId(req);
+  const result = await loginDoctor(req.body, tenantId);
   return respondWithAuth(res, result, "Doctor logged in");
 });
 

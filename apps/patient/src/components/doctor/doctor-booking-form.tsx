@@ -168,7 +168,7 @@ export const DoctorBookingForm = ({ doctor }: DoctorBookingFormProps) => {
 
   useEffect(() => {
     if (profile && token && role === "patient" && !patient) {
-      setAuth({ token, role: "patient", patient: profile });
+      setAuth({ token, role: "patient", patient: profile, tenantId: profile.tenantId });
     }
   }, [profile, token, role, patient, setAuth]);
 

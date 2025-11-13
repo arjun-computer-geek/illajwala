@@ -14,10 +14,14 @@ const mapDocumentToEntry = (doc: NotificationAuditDocument): NotificationAuditEn
   createdAt: doc.createdAt.toISOString(),
   actor: doc.actor ?? null,
   reason: doc.reason ?? null,
+  tenantId: doc.tenantId,
 });
 
-export const getNotificationAuditEntries = async (limit = 10): Promise<NotificationAuditEntry[]> => {
-  const entries = await NotificationAuditModel.find({})
+export const getNotificationAuditEntries = async (
+  tenantId: string,
+  limit = 10
+): Promise<NotificationAuditEntry[]> => {
+  const entries = await NotificationAuditModel.find({ tenantId })
     .sort({ createdAt: -1 })
     .limit(limit)
     .exec();
@@ -26,6 +30,7 @@ export const getNotificationAuditEntries = async (limit = 10): Promise<Notificat
 };
 
 export const queueNotificationResend = async (payload: {
+  tenantId: string;
   channel: NotificationChannel;
   body: string;
   actor?: string | null;
@@ -51,6 +56,7 @@ export const queueNotificationResend = async (payload: {
   }
 
   const doc = await NotificationAuditModel.create({
+    tenantId: payload.tenantId,
     channel: payload.channel,
     payload: payload.body,
     template,
@@ -67,6 +73,7 @@ export const queueNotificationResend = async (payload: {
       channel: payload.channel,
       payload: payload.body,
       reason: payload.reason ?? null,
+      tenantId: payload.tenantId,
     });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -77,10 +84,11 @@ export const queueNotificationResend = async (payload: {
 };
 
 export const getNotificationHistoryForPatient = async (
+  tenantId: string,
   patientId: string,
   { limit = 20 }: { limit?: number } = {}
 ): Promise<NotificationAuditEntry[]> => {
-  const patient = await PatientModel.findById(patientId).select("email phone");
+  const patient = await PatientModel.findOne({ _id: patientId, tenantId }).select("email phone");
   if (!patient) {
     return [];
   }
@@ -92,6 +100,7 @@ export const getNotificationHistoryForPatient = async (
   }
 
   const entries = await NotificationAuditModel.find({
+    tenantId,
     recipient: { $in: recipients },
   })
     .sort({ createdAt: -1 })

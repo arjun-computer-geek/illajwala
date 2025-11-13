@@ -17,13 +17,15 @@ import {
   updateAppointmentPayment,
 } from "./appointment.service";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
+import { requireTenantId } from "../../utils/tenant";
 
 export const handleCreateAppointment = catchAsync<
   Record<string, never>,
   unknown,
   CreateAppointmentInput
 >(async (req: AuthenticatedRequest<Record<string, never>, unknown, CreateAppointmentInput>, res: Response) => {
-  const { appointment, paymentOrder } = await createAppointment(req.body, req.user);
+  const tenantId = requireTenantId(req);
+  const { appointment, paymentOrder } = await createAppointment(req.body, req.user, tenantId);
   return res
     .status(StatusCodes.CREATED)
     .json(
@@ -41,6 +43,7 @@ export const handleListAppointments = catchAsync(async (req: AuthenticatedReques
   const page = Number(req.query.page ?? 1);
   const pageSize = Number(req.query.pageSize ?? 20);
   const { patientId, doctorId, status } = req.query as { patientId?: string; doctorId?: string; status?: string };
+  const tenantId = requireTenantId(req);
 
   const filters: { patientId?: string; doctorId?: string; status?: string } = {};
   if (patientId) {
@@ -58,6 +61,7 @@ export const handleListAppointments = catchAsync(async (req: AuthenticatedReques
     pageSize,
     ...filters,
     requester: req.user,
+    tenantId,
   });
 
   return res.json(paginateResponse(items, total, page, pageSize));
@@ -68,7 +72,8 @@ export const handleUpdateAppointmentStatus = catchAsync<
   unknown,
   UpdateAppointmentStatusInput
 >(async (req: AuthenticatedRequest<{ id: string }, unknown, UpdateAppointmentStatusInput>, res: Response) => {
-  const appointment = await updateAppointmentStatus(req.params.id, req.body, req.user);
+  const tenantId = requireTenantId(req);
+  const appointment = await updateAppointmentStatus(req.params.id, req.body, req.user, tenantId);
 
   if (!appointment) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Appointment not found" });
@@ -86,7 +91,8 @@ export const handleConfirmAppointmentPayment = catchAsync<
     req: AuthenticatedRequest<{ id: string }, unknown, ConfirmAppointmentPaymentInput>,
     res: Response
   ) => {
-    const appointment = await confirmAppointmentPayment(req.params.id, req.body, req.user);
+    const tenantId = requireTenantId(req);
+    const appointment = await confirmAppointmentPayment(req.params.id, req.body, req.user, tenantId);
     return res.json(successResponse(appointment, "Payment confirmed"));
   }
 );
@@ -100,7 +106,8 @@ export const handleUpdateAppointmentPayment = catchAsync<
     req: AuthenticatedRequest<{ id: string }, unknown, UpdateAppointmentPaymentInput>,
     res: Response
   ) => {
-    const appointment = await updateAppointmentPayment(req.params.id, req.body, req.user);
+    const tenantId = requireTenantId(req);
+    const appointment = await updateAppointmentPayment(req.params.id, req.body, req.user, tenantId);
     return res.json(successResponse(appointment, "Appointment payment updated"));
   }
 );

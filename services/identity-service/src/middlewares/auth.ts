@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
+import { StatusCodes } from "http-status-codes";
 import { verifyAccessToken } from "../utils/jwt";
 import { AppError } from "../utils/app-error";
-import { StatusCodes } from "http-status-codes";
+import { getTenantIdFromHeaders } from "../utils/tenant";
 
 type Role = "patient" | "doctor" | "admin";
 
@@ -15,7 +16,9 @@ export interface AuthenticatedRequest<
   user?: {
     id: string;
     role: Role;
+    tenantId?: string | null;
   };
+  tenantId?: string;
 }
 
 const extractToken = (req: Request): string | null => {
@@ -45,12 +48,30 @@ export const requireAuth = (roles: Role[] = ["patient", "doctor", "admin"]) => {
 
     try {
       const payload = verifyAccessToken(token);
-
       if (!roles.includes(payload.role)) {
         return next(AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Forbidden" }));
       }
 
-      req.user = { id: payload.sub, role: payload.role };
+      const headerTenantId = getTenantIdFromHeaders(req);
+      if (payload.tenantId && headerTenantId && payload.tenantId !== headerTenantId) {
+        return next(
+          AppError.from({
+            statusCode: StatusCodes.FORBIDDEN,
+            message: "Tenant context mismatch between token and request headers",
+          })
+        );
+      }
+
+      const resolvedTenant = payload.tenantId ?? headerTenantId ?? null;
+
+      req.user = {
+        id: payload.sub,
+        role: payload.role,
+        ...(resolvedTenant ? { tenantId: resolvedTenant } : {}),
+      };
+      if (resolvedTenant) {
+        req.tenantId = resolvedTenant;
+      }
       next();
     } catch (error) {
       next(AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Invalid token", cause: error as Error }));

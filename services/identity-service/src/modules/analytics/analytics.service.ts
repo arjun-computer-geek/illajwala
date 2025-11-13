@@ -31,7 +31,7 @@ const toRupees = (amountInMinorUnits: number | null | undefined): number => {
   return Math.round((amountInMinorUnits / 100) * 100) / 100;
 };
 
-export const getOpsMetricsSummary = async (): Promise<OpsMetricsSummary> => {
+export const getOpsMetricsSummary = async (tenantId: string): Promise<OpsMetricsSummary> => {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
@@ -46,18 +46,21 @@ export const getOpsMetricsSummary = async (): Promise<OpsMetricsSummary> => {
     clinicsPending,
     clinicsNeedingInfo,
   ] = await Promise.all([
-    AppointmentModel.countDocuments({ status: "in-session" }),
-    AppointmentModel.find({ status: "checked-in" }).select("scheduledAt").lean(),
+    AppointmentModel.countDocuments({ tenantId, status: "in-session" }),
+    AppointmentModel.find({ tenantId, status: "checked-in" }).select("scheduledAt").lean(),
     AppointmentModel.countDocuments({
+      tenantId,
       scheduledAt: { $gte: todayStart, $lte: todayEnd },
     }),
     AppointmentModel.countDocuments({
+      tenantId,
       status: "no-show",
       scheduledAt: { $gte: todayStart, $lte: todayEnd },
     }),
     AppointmentModel.aggregate<{ _id: string; total: number }>([
       {
         $match: {
+          tenantId,
           "payment.status": "captured",
           "payment.capturedAt": { $gte: todayStart, $lte: todayEnd },
         },
@@ -69,9 +72,9 @@ export const getOpsMetricsSummary = async (): Promise<OpsMetricsSummary> => {
         },
       },
     ]),
-    DoctorModel.countDocuments({ reviewStatus: "active" }),
-    DoctorModel.countDocuments({ reviewStatus: { $in: ["pending", "needs-info", "approved"] } }),
-    DoctorModel.countDocuments({ reviewStatus: "needs-info" }),
+    DoctorModel.countDocuments({ tenantId, reviewStatus: "active" }),
+    DoctorModel.countDocuments({ tenantId, reviewStatus: { $in: ["pending", "needs-info", "approved"] } }),
+    DoctorModel.countDocuments({ tenantId, reviewStatus: "needs-info" }),
   ]);
 
   const waitingPatients = waitingAppointments.length;
@@ -103,7 +106,7 @@ export const getOpsMetricsSummary = async (): Promise<OpsMetricsSummary> => {
   };
 };
 
-export const getOpsAnalyticsSeries = async (): Promise<OpsAnalyticsSeries> => {
+export const getOpsAnalyticsSeries = async (tenantId: string): Promise<OpsAnalyticsSeries> => {
   const today = startOfDay(new Date());
   const days = 14;
   const rangeStart = addDays(today, -1 * (days - 1));
@@ -118,6 +121,7 @@ export const getOpsAnalyticsSeries = async (): Promise<OpsAnalyticsSeries> => {
     }>([
       {
         $match: {
+          tenantId,
           scheduledAt: { $gte: rangeStart, $lte: rangeEnd },
         },
       },
@@ -144,6 +148,7 @@ export const getOpsAnalyticsSeries = async (): Promise<OpsAnalyticsSeries> => {
     AppointmentModel.aggregate<{ _id: string; total: number }>([
       {
         $match: {
+          tenantId,
           "payment.status": "captured",
           "payment.capturedAt": { $gte: rangeStart, $lte: rangeEnd },
         },

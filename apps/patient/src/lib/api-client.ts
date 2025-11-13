@@ -69,12 +69,14 @@ const refreshAccessToken = async (): Promise<string | null> => {
     const result = tokenRefreshResponseSchema.parse(response.data.data);
 
     setAuthToken(result.token);
+    setTenantContext(result.tenantId ?? null);
     notifyRefreshListeners(result);
 
     return result.token;
   } catch (error) {
     console.warn("[api] Refresh token request failed:", error);
     setAuthToken(null);
+    setTenantContext(null);
     notifyUnauthorizedListeners();
     return null;
   }
@@ -88,6 +90,7 @@ export const apiClient = createApiClient({
   onUnauthorized: () => {
     console.warn("[api] Request unauthorized – clearing auth session");
     setAuthToken(null);
+    setTenantContext(null);
     notifyUnauthorizedListeners();
   },
 });

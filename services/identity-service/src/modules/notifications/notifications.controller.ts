@@ -9,17 +9,21 @@ import {
   queueNotificationResend,
 } from "./notification.service";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
+import { requireTenantId } from "../../utils/tenant";
 
 export const handleGetNotificationAudit = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
   const limitParam = req.query.limit;
   const limit = typeof limitParam === "string" ? Math.min(Math.max(Number.parseInt(limitParam, 10) || 10, 1), 50) : 10;
 
-  const entries = await getNotificationAuditEntries(limit);
+  const tenantId = requireTenantId(req);
+  const entries = await getNotificationAuditEntries(tenantId, limit);
   return res.json(successResponse(entries));
 });
 
 export const handleQueueNotificationResend = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = requireTenantId(req);
   const entry = await queueNotificationResend({
+    tenantId,
     channel: req.body.channel,
     body: req.body.payload,
     actor: req.user?.id ?? null,
@@ -38,7 +42,8 @@ export const handleGetPatientNotificationHistory = catchAsync(async (req: Authen
   const limitParam = req.query.limit;
   const limit = typeof limitParam === "string" ? Number.parseInt(limitParam, 10) || 20 : 20;
 
-  const entries = await getNotificationHistoryForPatient(req.user.id, { limit });
+  const tenantId = requireTenantId(req);
+  const entries = await getNotificationHistoryForPatient(tenantId, req.user.id, { limit });
   return res.json(successResponse(entries));
 });
 

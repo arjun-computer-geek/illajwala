@@ -5,6 +5,8 @@ import { AppointmentModel } from "../modules/appointments/appointment.model";
 import { AdminModel } from "../modules/admins/admin.model";
 import { hashPassword } from "../utils/password";
 
+const DEFAULT_TENANT_ID = "demo-clinic";
+
 const sampleDoctors = [
   {
     name: "Dr. Aisha Verma",
@@ -173,12 +175,14 @@ const createSampleAppointments = async (patientId: string, doctorIds: string[]) 
 
     await AppointmentModel.findOneAndUpdate(
       {
+        tenantId: DEFAULT_TENANT_ID,
         patient: patientId,
         doctor: doctorId,
         scheduledAt: payload.scheduledAt,
       },
       {
         $setOnInsert: {
+          tenantId: DEFAULT_TENANT_ID,
           patient: patientId,
           doctor: doctorId,
           scheduledAt: payload.scheduledAt,
@@ -200,8 +204,8 @@ const seed = async () => {
   const doctors = [];
   for (const doctor of sampleDoctors) {
     const upserted = await DoctorModel.findOneAndUpdate(
-      { email: doctor.email },
-      { $set: doctor },
+      { tenantId: DEFAULT_TENANT_ID, email: doctor.email },
+      { $set: { ...doctor, tenantId: DEFAULT_TENANT_ID } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     doctors.push(upserted);
@@ -210,9 +214,10 @@ const seed = async () => {
 
   const passwordHash = await hashPassword(samplePatient.password);
   const patient = await PatientModel.findOneAndUpdate(
-    { email: samplePatient.email },
+    { tenantId: DEFAULT_TENANT_ID, email: samplePatient.email },
     {
       $set: {
+        tenantId: DEFAULT_TENANT_ID,
         name: samplePatient.name,
         phone: samplePatient.phone,
         passwordHash,
@@ -235,6 +240,7 @@ const seed = async () => {
     { email: sampleAdmin.email },
     {
       $set: {
+        tenantId: DEFAULT_TENANT_ID,
         name: sampleAdmin.name,
         email: sampleAdmin.email,
         passwordHash: adminPasswordHash,

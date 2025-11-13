@@ -19,7 +19,11 @@ export const handleGetProfile = catchAsync(async (req: AuthenticatedRequest, res
     throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
   }
 
-  const patient = await getPatientById(req.user.id);
+  if (!req.user.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const patient = await getPatientById(req.user.id, req.user.tenantId);
   if (!patient) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Patient not found" });
   }
@@ -36,7 +40,11 @@ export const handleUpdateProfile = catchAsync<
     throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
   }
 
-  const patient = await updatePatientProfile(req.user.id, req.body);
+  if (!req.user.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const patient = await updatePatientProfile(req.user.id, req.user.tenantId, req.body);
   if (!patient) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Patient not found" });
   }
@@ -53,7 +61,11 @@ export const handleAddDependent = catchAsync<
     throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
   }
 
-  const patient = await addDependent(req.user.id, req.body);
+  if (!req.user.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const patient = await addDependent(req.user.id, req.user.tenantId, req.body);
   return res.status(StatusCodes.CREATED).json(successResponse(patient, "Dependent added"));
 });
 
@@ -69,7 +81,11 @@ export const handleRemoveDependent = catchAsync<{ name: string }>(
       throw AppError.from({ statusCode: StatusCodes.BAD_REQUEST, message: "Dependent name is required" });
     }
 
-    const patient = await removeDependent(req.user.id, name);
+    if (!req.user.tenantId) {
+      throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+    }
+
+    const patient = await removeDependent(req.user.id, req.user.tenantId, name);
 
     return res.json(successResponse(patient, "Dependent removed"));
   }
@@ -80,7 +96,11 @@ export const handleGetNotificationPreferences = catchAsync(async (req: Authentic
     throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
   }
 
-  const preferences = await getNotificationPreferences(req.user.id);
+  if (!req.user.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const preferences = await getNotificationPreferences(req.user.id, req.user.tenantId);
   return res.json(successResponse(preferences));
 });
 
@@ -93,7 +113,11 @@ export const handleUpdateNotificationPreferences = catchAsync<
     throw AppError.from({ statusCode: StatusCodes.UNAUTHORIZED, message: "Unauthorized" });
   }
 
-  const preferences = await updateNotificationPreferences(req.user.id, req.body);
+  if (!req.user.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const preferences = await updateNotificationPreferences(req.user.id, req.user.tenantId, req.body);
   return res.json(successResponse(preferences, "Notification preferences updated"));
 });
 

@@ -9,6 +9,7 @@ const resendQueue = new Queue<NotificationResendJob>("notification-resend", {
 });
 
 type NotificationResendJob = {
+  tenantId: string;
   auditId: string;
   channel: NotificationChannel;
   payload: string;

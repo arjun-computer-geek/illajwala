@@ -24,9 +24,11 @@ import {
   updateDoctorProfile,
 } from "./doctor.service";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
+import { requireTenantId } from "../../utils/tenant";
 
-export const handleListSpecialties: RequestHandler = catchAsync(async (_req: Request, res: Response) => {
-  const specialties = await listDoctorSpecialties();
+export const handleListSpecialties: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const tenantId = requireTenantId(req);
+  const specialties = await listDoctorSpecialties(tenantId);
   return res.json(successResponse(specialties));
 });
 
@@ -34,8 +36,12 @@ export const handleCreateDoctor = catchAsync<
   Record<string, never>,
   unknown,
   CreateDoctorInput
->(async (req: Request<Record<string, never>, unknown, CreateDoctorInput>, res: Response) => {
-  const doctor = await createDoctor(req.body);
+>(async (req: AuthenticatedRequest<Record<string, never>, unknown, CreateDoctorInput>, res: Response) => {
+  if (!req.user?.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const doctor = await createDoctor(req.body, req.user.tenantId);
   return res.status(StatusCodes.CREATED).json(successResponse(doctor, "Doctor created"));
 });
 
@@ -43,8 +49,12 @@ export const handleUpdateDoctor = catchAsync<
   { id: string },
   unknown,
   UpdateDoctorInput
->(async (req: Request<{ id: string }, unknown, UpdateDoctorInput>, res: Response) => {
-  const doctor = await updateDoctor(req.params.id, req.body);
+>(async (req: AuthenticatedRequest<{ id: string }, unknown, UpdateDoctorInput>, res: Response) => {
+  if (!req.user?.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const doctor = await updateDoctor(req.params.id, req.user.tenantId, req.body);
 
   if (!doctor) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
@@ -55,7 +65,8 @@ export const handleUpdateDoctor = catchAsync<
 
 export const handleGetDoctor = catchAsync<{ id: string }>(
   async (req: Request<{ id: string }>, res: Response) => {
-    const doctor = await getDoctorById(req.params.id);
+    const tenantId = requireTenantId(req);
+    const doctor = await getDoctorById(req.params.id, tenantId);
 
     if (!doctor) {
       throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
@@ -65,31 +76,29 @@ export const handleGetDoctor = catchAsync<{ id: string }>(
   }
 );
 
-export const handleSearchDoctors = catchAsync<
-  Record<string, string | string[] | undefined>,
-  unknown,
-  unknown,
-  DoctorSearchParams
->(async (req: Request<Record<string, string | string[] | undefined>, unknown, unknown, DoctorSearchParams>, res: Response) => {
-  const page = req.query.page ?? 1;
-  const pageSize = req.query.pageSize ?? 20;
+export const handleSearchDoctors = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = requireTenantId(req);
+  const query = req.query as unknown as DoctorSearchParams;
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 20;
 
-  const { items, total } = await searchDoctors({
-    ...req.query,
-    page,
-    pageSize,
-  });
+  const { items, total } = await searchDoctors(
+    {
+      ...query,
+      page,
+      pageSize,
+    },
+    tenantId
+  );
 
   return res.json(paginateResponse(items, total, page, pageSize));
 });
 
-export const handleGetDoctorAvailability = catchAsync<
-  { id: string },
-  unknown,
-  unknown,
-  DoctorAvailabilityParams
->(async (req: Request<{ id: string }, unknown, unknown, DoctorAvailabilityParams>, res: Response) => {
-  const availability = await getDoctorAvailability(req.params.id, req.query);
+export const handleGetDoctorAvailability = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = requireTenantId(req);
+  const { id } = req.params as { id: string };
+  const params = req.query as unknown as DoctorAvailabilityParams;
+  const availability = await getDoctorAvailability(id, tenantId, params);
 
   if (!availability) {
     throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
@@ -102,8 +111,12 @@ export const handleReviewDoctor = catchAsync<
   { id: string },
   unknown,
   DoctorReviewActionInput
->(async (req: Request<{ id: string }, unknown, DoctorReviewActionInput>, res: Response) => {
-  const doctor = await reviewDoctor(req.params.id, req.body);
+>(async (req: AuthenticatedRequest<{ id: string }, unknown, DoctorReviewActionInput>, res: Response) => {
+  if (!req.user?.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const doctor = await reviewDoctor(req.params.id, req.user.tenantId, req.body);
   return res.json(successResponse(doctor, "Doctor review updated"));
 });
 
@@ -111,8 +124,12 @@ export const handleAddDoctorNote = catchAsync<
   { id: string },
   unknown,
   DoctorAddNoteInput
->(async (req: Request<{ id: string }, unknown, DoctorAddNoteInput>, res: Response) => {
-  const doctor = await addDoctorReviewNote(req.params.id, req.body);
+>(async (req: AuthenticatedRequest<{ id: string }, unknown, DoctorAddNoteInput>, res: Response) => {
+  if (!req.user?.tenantId) {
+    throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+  }
+
+  const doctor = await addDoctorReviewNote(req.params.id, req.user.tenantId, req.body);
   return res.status(StatusCodes.CREATED).json(successResponse(doctor, "Review note added"));
 });
 
@@ -129,7 +146,11 @@ export const handleUpdateDoctorProfile = catchAsync<
       throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Forbidden" });
     }
 
-    const doctor = await updateDoctorProfile(req.user.id, req.body);
+    if (!req.user.tenantId) {
+      throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Tenant context missing" });
+    }
+
+    const doctor = await updateDoctorProfile(req.user.id, req.user.tenantId, req.body);
     return res.json(successResponse(doctor, "Profile updated"));
   }
 );

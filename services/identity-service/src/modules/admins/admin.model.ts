@@ -1,6 +1,7 @@
 import { Schema, model, type Document } from "mongoose";
 
 export type AdminDocument = Document & {
+  tenantId?: string | null;
   name: string;
   email: string;
   passwordHash: string;
@@ -13,6 +14,7 @@ const adminSchema = new Schema<AdminDocument>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, required: true, default: "admin" },
+    tenantId: { type: String, trim: true, default: null },
   },
   {
     timestamps: true,

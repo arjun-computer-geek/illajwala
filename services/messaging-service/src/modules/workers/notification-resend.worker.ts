@@ -7,6 +7,7 @@ import type { NotificationChannel } from "@illajwala/types";
 import { sendMail } from "../notifications/mailer";
 
 type NotificationResendJob = {
+  tenantId: string;
   auditId: string;
   channel: NotificationChannel;
   payload: string;
@@ -35,10 +36,13 @@ export const registerNotificationResendWorker = ({
   const worker = new Worker<NotificationResendJob>(
     queue.name,
     async (job) => {
-      logger.info(
-        { jobId: job.id, channel: job.data.channel, auditId: job.data.auditId, reason: job.data.reason },
-        "Processing notification resend"
-      );
+      logger.info({
+        jobId: job.id,
+        tenantId: job.data.tenantId,
+        channel: job.data.channel,
+        auditId: job.data.auditId,
+        reason: job.data.reason,
+      }, "Processing notification resend");
 
       const parsed = parsePayload(job.data.payload);
 

@@ -2,10 +2,12 @@ import { z } from "zod";
 import { doctorSchema } from "./doctors";
 import { patientProfileSchema } from "./patients";
 import { adminSchema } from "./admin";
+import { tenantIdSchema } from "./common";
 
 const baseAuthResponseSchema = z.object({
   token: z.string(),
   refreshToken: z.string().optional(),
+  tenantId: tenantIdSchema.optional(),
 });
 
 export const registerPatientSchema = z.object({
@@ -33,11 +35,13 @@ export const loginAdminSchema = z.object({
 export const patientAuthResponseSchema = baseAuthResponseSchema.extend({
   role: z.literal("patient"),
   patient: patientProfileSchema,
+  tenantId: tenantIdSchema,
 });
 
 export const doctorAuthResponseSchema = baseAuthResponseSchema.extend({
   role: z.literal("doctor"),
   doctor: doctorSchema,
+  tenantId: tenantIdSchema,
 });
 
 export const adminAuthResponseSchema = baseAuthResponseSchema.extend({

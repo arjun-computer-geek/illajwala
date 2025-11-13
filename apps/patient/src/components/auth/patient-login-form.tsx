@@ -34,8 +34,8 @@ export const PatientLoginForm = () => {
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
-      const { token, patient } = await authApi.loginPatient(values);
-      setAuth({ token, role: "patient", patient });
+      const { token, patient, tenantId } = await authApi.loginPatient(values);
+      setAuth({ token, role: "patient", patient, tenantId });
       toast.success(`Welcome back, ${patient.name}!`);
       router.push("/account/appointments");
     } catch (error) {

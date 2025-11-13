@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { objectIdSchema } from "./common";
+import { objectIdSchema, tenantIdSchema } from "./common";
 import { notificationPreferencesSchema } from "./patients";
 
 export const consultationEventTypeSchema = z.enum([
@@ -11,6 +11,7 @@ export const consultationEventTypeSchema = z.enum([
 
 export const consultationEventSchema = z.object({
   type: consultationEventTypeSchema,
+  tenantId: tenantIdSchema,
   appointmentId: objectIdSchema,
   doctorId: objectIdSchema,
   doctorName: z.string().optional(),

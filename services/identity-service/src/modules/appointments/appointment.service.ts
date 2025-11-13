@@ -22,7 +22,8 @@ type Requester = AuthenticatedRequest["user"];
 
 export const createAppointment = async (
   payload: CreateAppointmentInput,
-  requester?: Requester
+  requester: Requester | undefined,
+  tenantId: string
 ): Promise<{
   appointment: AppointmentDocument;
   paymentOrder: null | {
@@ -34,6 +35,13 @@ export const createAppointment = async (
     intentExpiresAt?: Date;
   };
 }> => {
+  if (!tenantId) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Tenant context is required to create appointments",
+    });
+  }
+
   if (requester?.role === "patient" && requester.id !== payload.patientId) {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
@@ -56,13 +64,21 @@ export const createAppointment = async (
     });
   }
 
-  const doctor = await DoctorModel.findById(payload.doctorId).select(
+  const doctor = await DoctorModel.findOne({ _id: payload.doctorId, tenantId }).select(
     "fee consultationModes name specialization"
   );
   if (!doctor) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
       message: "Doctor not found",
+    });
+  }
+
+  const patientExists = await PatientModel.exists({ _id: payload.patientId, tenantId });
+  if (!patientExists) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: "Patient not found",
     });
   }
 
@@ -74,7 +90,7 @@ export const createAppointment = async (
   }
 
   const expiresInSeconds = env.APPOINTMENT_PAYMENT_TIMEOUT_MINUTES * 60;
-  const lockAcquired = await acquireSlotLock(payload.doctorId, scheduledAt, expiresInSeconds);
+  const lockAcquired = await acquireSlotLock(tenantId, payload.doctorId, scheduledAt, expiresInSeconds);
 
   if (!lockAcquired) {
     throw AppError.from({
@@ -85,6 +101,7 @@ export const createAppointment = async (
 
   try {
     const conflictingAppointment = await AppointmentModel.findOne({
+      tenantId,
       doctor: payload.doctorId,
       scheduledAt,
       status: { $ne: "cancelled" },
@@ -156,6 +173,7 @@ export const createAppointment = async (
     }
 
     const appointment = await AppointmentModel.create({
+      tenantId,
       patient: payload.patientId,
       doctor: payload.doctorId,
       scheduledAt,
@@ -175,7 +193,7 @@ export const createAppointment = async (
       paymentOrder: paymentPayload,
     };
   } finally {
-    await releaseSlotLock(payload.doctorId, scheduledAt);
+    await releaseSlotLock(tenantId, payload.doctorId, scheduledAt);
   }
 };
 
@@ -186,6 +204,7 @@ export const listAppointments = async ({
   doctorId,
   status,
   requester,
+  tenantId,
 }: {
   page?: number;
   pageSize?: number;
@@ -193,8 +212,9 @@ export const listAppointments = async ({
   doctorId?: string;
   status?: string;
   requester?: Requester;
+  tenantId: string;
 }) => {
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = { tenantId };
   if (patientId) {
     filter.patient = patientId;
   }
@@ -227,7 +247,8 @@ export const listAppointments = async ({
 export const updateAppointmentStatus = async (
   id: string,
   payload: UpdateAppointmentStatusInput,
-  requester?: Requester
+  requester: Requester | undefined,
+  tenantId: string
 ) => {
   if (requester?.role === "patient") {
     throw AppError.from({
@@ -236,7 +257,7 @@ export const updateAppointmentStatus = async (
     });
   }
 
-  const appointment = await AppointmentModel.findById(id);
+  const appointment = await AppointmentModel.findOne({ _id: id, tenantId });
 
   if (!appointment) {
     throw AppError.from({
@@ -368,7 +389,7 @@ const maybePublishConsultationEvent = async ({
   const patient = appointment.patient as unknown as { _id: string; name?: string; email?: string; phone?: string };
   const patientId = patient?._id?.toString() ?? String(appointment.patient);
 
-  const patientRecord = await PatientModel.findById(patientId)
+  const patientRecord = await PatientModel.findOne({ _id: patientId, tenantId: appointment.tenantId })
     .select("phone notificationPreferences")
     .lean();
 
@@ -381,6 +402,7 @@ const maybePublishConsultationEvent = async ({
     doctorId: doctor?._id?.toString() ?? String(appointment.doctor),
     patientId: patient?._id?.toString() ?? String(appointment.patient),
     scheduledAt: appointment.scheduledAt.toISOString(),
+    tenantId: appointment.tenantId,
     ...(doctor?.name ? { doctorName: doctor.name } : {}),
     ...(patient?.name ? { patientName: patient.name } : {}),
     ...(patient?.email ? { patientEmail: patient.email } : {}),
@@ -405,9 +427,10 @@ const maybePublishConsultationEvent = async ({
 export const confirmAppointmentPayment = async (
   id: string,
   payload: ConfirmAppointmentPaymentInput,
-  requester?: Requester
+  requester: Requester | undefined,
+  tenantId: string
 ) => {
-  const appointment = await AppointmentModel.findById(id);
+  const appointment = await AppointmentModel.findOne({ _id: id, tenantId });
 
   if (!appointment) {
     throw AppError.from({
@@ -487,7 +510,8 @@ export const confirmAppointmentPayment = async (
 export const updateAppointmentPayment = async (
   id: string,
   payload: UpdateAppointmentPaymentInput,
-  requester?: Requester
+  requester: Requester | undefined,
+  tenantId: string
 ) => {
   if (requester?.role !== "admin") {
     throw AppError.from({
@@ -496,7 +520,7 @@ export const updateAppointmentPayment = async (
     });
   }
 
-  const appointment = await AppointmentModel.findById(id);
+  const appointment = await AppointmentModel.findOne({ _id: id, tenantId });
 
   if (!appointment || !appointment.payment) {
     throw AppError.from({

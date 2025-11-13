@@ -29,10 +29,10 @@ export const useDoctorAuthStore = create<DoctorAuthState>()(
       token: null,
       doctor: null,
       hydrated: false,
-      setAuth: ({ token, doctor }) => {
+      setAuth: ({ token, doctor, tenantId }) => {
         set({ token, doctor });
         setDoctorAuthToken(token, { silent: true });
-        setDoctorTenant(doctor?.clinicLocations?.[0]?.city ?? null);
+        setDoctorTenant(tenantId ?? null);
       },
       clearAuth: (options) => {
         set({ token: null, doctor: null });
@@ -52,7 +52,7 @@ export const useDoctorAuthStore = create<DoctorAuthState>()(
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) {
           setDoctorAuthToken(state.token ?? null, { silent: true });
-          setDoctorTenant(state.doctor?.clinicLocations?.[0]?.city ?? null);
+        setDoctorTenant(state.doctor?.tenantId ?? null);
         }
         state?.setHydrated?.();
       },
@@ -66,6 +66,7 @@ const handleDoctorRefresh = (payload: TokenRefreshResponse) => {
   }
 
   setDoctorAuthToken(payload.token, { silent: true });
+  setDoctorTenant(payload.tenantId ?? null);
   useDoctorAuthStore.setState({
     token: payload.token,
     doctor: payload.doctor,
