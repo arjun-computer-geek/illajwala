@@ -1,22 +1,129 @@
 import { FilterQuery } from "mongoose";
-import { DoctorModel, type DoctorDocument } from "./doctor.model";
+import { StatusCodes } from "http-status-codes";
+import {
+  DoctorModel,
+  type DoctorDocument,
+  type DoctorReviewStatus,
+} from "./doctor.model";
 import type {
   CreateDoctorInput,
   DoctorAvailabilityParams,
   UpdateDoctorInput,
+  DoctorReviewActionInput,
+  DoctorAddNoteInput,
+  DoctorProfileUpdateInput,
 } from "./doctor.schema";
 import { AppointmentModel } from "../appointments/appointment.model";
+import { AppError } from "../../utils/app-error";
 
 export const createDoctor = async (payload: CreateDoctorInput) => DoctorModel.create(payload);
 
 export const updateDoctor = async (id: string, payload: UpdateDoctorInput) =>
   DoctorModel.findByIdAndUpdate(id, payload, { new: true });
 
+export const updateDoctorProfile = async (id: string, payload: DoctorProfileUpdateInput) => {
+  const doctor = await DoctorModel.findById(id);
+  if (!doctor) {
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+  }
+
+  if (payload.onboardingChecklist) {
+    doctor.onboardingChecklist = {
+      ...doctor.onboardingChecklist,
+      ...payload.onboardingChecklist,
+    };
+  }
+
+  const assignablePayload = { ...payload } as Partial<DoctorDocument> & {
+    onboardingChecklist?: never;
+  };
+  delete (assignablePayload as Record<string, unknown>).onboardingChecklist;
+
+  Object.assign(doctor, assignablePayload);
+  doctor.lastReviewedAt = new Date();
+
+  await doctor.save();
+  return doctor;
+};
 export const getDoctorById = async (id: string) => DoctorModel.findById(id);
 
 export const listDoctorSpecialties = async () => {
   const specialties = await DoctorModel.distinct("specialization");
   return specialties.sort((a, b) => a.localeCompare(b));
+};
+
+const shouldUpdateApprovedAt = (status: DoctorReviewStatus) =>
+  status === "approved" || status === "active";
+
+export const reviewDoctor = async (id: string, payload: DoctorReviewActionInput) => {
+  const doctorExists = await DoctorModel.findById(id);
+
+  if (!doctorExists) {
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+  }
+
+  const setFields: Record<string, unknown> = {
+    reviewStatus: payload.status,
+    lastReviewedAt: new Date(),
+  };
+
+  if (shouldUpdateApprovedAt(payload.status)) {
+    setFields.approvedAt = new Date();
+  }
+
+  if (payload.onboardingChecklist) {
+    for (const [key, value] of Object.entries(payload.onboardingChecklist)) {
+      setFields[`onboardingChecklist.${key}`] = value;
+    }
+  }
+
+  const updateOps: Record<string, unknown> = {
+    $set: setFields,
+  };
+
+  if (payload.note) {
+    updateOps.$push = {
+      reviewNotes: {
+        message: payload.note,
+        author: payload.author,
+        status: payload.status,
+        createdAt: new Date(),
+      },
+    };
+  }
+
+  const updatedDoctor = await DoctorModel.findByIdAndUpdate(id, updateOps, {
+    new: true,
+    runValidators: true,
+  });
+
+  return updatedDoctor;
+};
+
+export const addDoctorReviewNote = async (id: string, payload: DoctorAddNoteInput) => {
+  const doctor = await DoctorModel.findByIdAndUpdate(
+    id,
+    {
+      $push: {
+        reviewNotes: {
+          message: payload.message,
+          author: payload.author,
+          status: payload.status,
+          createdAt: new Date(),
+        },
+      },
+      $set: {
+        lastReviewedAt: new Date(),
+      },
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!doctor) {
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+  }
+
+  return doctor;
 };
 
 export const searchDoctors = async ({

@@ -62,5 +62,5 @@
 - Admin can approve, reject (request-info), and activate providers with notes saved in MongoDB.  
 - Doctor can edit profile and see onboarding checklist updates based on backend status.  
 - Identity service validates all provider mutations and exposes audit log endpoints.  
-- Updated documentation: API references, admin/doctor user guides, staging smoke test checklist.
+- Updated documentation: API references, admin/doctor user guides, staging smoke test checklist (`docs/provider-onboarding.md`).
 

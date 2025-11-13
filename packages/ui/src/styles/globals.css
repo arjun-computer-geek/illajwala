@@ -124,3 +124,14 @@
   }
 }
 
+/* Restore pointer cursor for all clickable elements */
+button,
+[role="button"],
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+label[for],
+select {
+  cursor: pointer;
+}

@@ -164,6 +164,11 @@ export default function DoctorDashboardPage() {
                   Patient nudges enabled
                 </span>
               </div>
+              <div>
+                <Button asChild variant="outline" className="rounded-full px-6 text-xs uppercase tracking-[0.28em]">
+                  <Link href="/profile">Update profile</Link>
+                </Button>
+              </div>
             </div>
             <Card className="max-w-sm border border-border/70 bg-white/90 shadow-none dark:border-border/40 dark:bg-background/80">
               <CardHeader className="pb-3">

@@ -16,6 +16,20 @@ const sampleDoctors = [
     languages: ["English", "Hindi"],
     consultationModes: ["clinic", "telehealth"],
     fee: 1500,
+    reviewStatus: "active",
+    onboardingChecklist: {
+      kycComplete: true,
+      payoutSetupComplete: true,
+      telehealthReady: true,
+    },
+    reviewNotes: [
+      {
+        message: "Credentials verified and clinic walkthrough complete.",
+        author: "Priya Sharma",
+        status: "approved",
+      },
+    ],
+    approvedAt: new Date(),
     clinicLocations: [
       {
         name: "illajwala Heart Institute",
@@ -39,6 +53,24 @@ const sampleDoctors = [
     languages: ["English", "Marathi", "Hindi"],
     consultationModes: ["clinic", "telehealth", "home-visit"],
     fee: 900,
+    reviewStatus: "approved",
+    onboardingChecklist: {
+      kycComplete: true,
+      payoutSetupComplete: false,
+      telehealthReady: true,
+    },
+    reviewNotes: [
+      {
+        message: "Approved pending payout verification call.",
+        author: "Anil Kapoor",
+        status: "approved",
+      },
+      {
+        message: "Awaiting Razorpay statement upload.",
+        author: "Anil Kapoor",
+        status: "needs-info",
+      },
+    ],
     clinicLocations: [
       {
         name: "Skin Renewal Clinic",
@@ -62,6 +94,19 @@ const sampleDoctors = [
     languages: ["English", "Tamil"],
     consultationModes: ["clinic"],
     fee: 700,
+    reviewStatus: "needs-info",
+    onboardingChecklist: {
+      kycComplete: false,
+      payoutSetupComplete: false,
+      telehealthReady: false,
+    },
+    reviewNotes: [
+      {
+        message: "Requesting updated medical license copy (expires next month).",
+        author: "Rohit Mehra",
+        status: "needs-info",
+      },
+    ],
     clinicLocations: [
       {
         name: "Happy Kids Care",

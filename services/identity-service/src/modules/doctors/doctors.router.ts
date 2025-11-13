@@ -6,6 +6,9 @@ import {
   handleSearchDoctors,
   handleUpdateDoctor,
   handleGetDoctorAvailability,
+  handleReviewDoctor,
+  handleAddDoctorNote,
+  handleUpdateDoctorProfile,
 } from "./doctors.controller";
 import { requireAuth } from "../../middlewares/auth";
 import { validateRequest } from "../../middlewares/validate-request";
@@ -13,10 +16,13 @@ import {
   createDoctorSchema,
   doctorAvailabilitySchema,
   doctorSearchSchema,
-  updateDoctorSchema,
+  adminUpdateDoctorSchema,
+  doctorReviewActionSchema,
+  doctorAddNoteSchema,
+  doctorProfileUpdateSchema,
 } from "./doctor.schema";
 
-export const doctorRouter = Router();
+export const doctorRouter: Router = Router();
 
 doctorRouter.get("/specialties", handleListSpecialties);
 doctorRouter.get("/", validateRequest({ query: doctorSearchSchema }), handleSearchDoctors);
@@ -34,8 +40,26 @@ doctorRouter.post(
 );
 doctorRouter.patch(
   "/:id",
-  requireAuth(["doctor", "admin"]),
-  validateRequest({ body: updateDoctorSchema }),
+  requireAuth(["admin"]),
+  validateRequest({ body: adminUpdateDoctorSchema }),
   handleUpdateDoctor
+);
+doctorRouter.patch(
+  "/me/profile",
+  requireAuth(["doctor"]),
+  validateRequest({ body: doctorProfileUpdateSchema }),
+  handleUpdateDoctorProfile
+);
+doctorRouter.post(
+  "/:id/review",
+  requireAuth(["admin"]),
+  validateRequest({ body: doctorReviewActionSchema }),
+  handleReviewDoctor
+);
+doctorRouter.post(
+  "/:id/notes",
+  requireAuth(["admin"]),
+  validateRequest({ body: doctorAddNoteSchema }),
+  handleAddDoctorNote
 );
 

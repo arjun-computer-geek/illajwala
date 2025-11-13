@@ -6,6 +6,22 @@ import {
   ratingSchema,
 } from "./common";
 
+export const doctorReviewStatusSchema = z.enum(["pending", "needs-info", "approved", "active"]);
+
+export const doctorReviewNoteSchema = z.object({
+  _id: objectIdSchema.optional(),
+  message: z.string(),
+  author: z.string().optional(),
+  status: doctorReviewStatusSchema.optional(),
+  createdAt: z.string(),
+});
+
+export const doctorOnboardingChecklistSchema = z.object({
+  kycComplete: z.boolean().default(false),
+  payoutSetupComplete: z.boolean().default(false),
+  telehealthReady: z.boolean().default(false),
+});
+
 export const doctorSchema = z.object({
   _id: objectIdSchema,
   name: z.string(),
@@ -22,6 +38,11 @@ export const doctorSchema = z.object({
   experienceYears: z.number().int().nonnegative().optional(),
   profileImageUrl: z.string().url().optional(),
   highlighted: z.boolean().optional(),
+  reviewStatus: doctorReviewStatusSchema.default("pending"),
+  reviewNotes: z.array(doctorReviewNoteSchema).default([]),
+  onboardingChecklist: doctorOnboardingChecklistSchema.default({}),
+  lastReviewedAt: z.string().nullable().optional(),
+  approvedAt: z.string().nullable().optional(),
 });
 
 export const doctorSearchSchema = z.object({
@@ -37,4 +58,5 @@ export const doctorSearchSchema = z.object({
 
 export type Doctor = z.infer<typeof doctorSchema>;
 export type DoctorSearchParams = z.infer<typeof doctorSearchSchema>;
+export type DoctorReviewStatus = z.infer<typeof doctorReviewStatusSchema>;
 

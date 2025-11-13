@@ -8,6 +8,9 @@ import type {
   UpdateDoctorInput,
   DoctorSearchParams,
   DoctorAvailabilityParams,
+  DoctorReviewActionInput,
+  DoctorAddNoteInput,
+  DoctorProfileUpdateInput,
 } from "./doctor.schema";
 import {
   createDoctor,
@@ -16,7 +19,11 @@ import {
   searchDoctors,
   updateDoctor,
   getDoctorAvailability,
+  reviewDoctor,
+  addDoctorReviewNote,
+  updateDoctorProfile,
 } from "./doctor.service";
+import type { AuthenticatedRequest } from "../../middlewares/auth";
 
 export const handleListSpecialties = catchAsync(async (_req: Request, res: Response) => {
   const specialties = await listDoctorSpecialties();
@@ -90,3 +97,39 @@ export const handleGetDoctorAvailability = catchAsync<
 
   return res.json(successResponse(availability));
 });
+
+export const handleReviewDoctor = catchAsync<
+  { id: string },
+  unknown,
+  DoctorReviewActionInput
+>(async (req: Request<{ id: string }, unknown, DoctorReviewActionInput>, res: Response) => {
+  const doctor = await reviewDoctor(req.params.id, req.body);
+  return res.json(successResponse(doctor, "Doctor review updated"));
+});
+
+export const handleAddDoctorNote = catchAsync<
+  { id: string },
+  unknown,
+  DoctorAddNoteInput
+>(async (req: Request<{ id: string }, unknown, DoctorAddNoteInput>, res: Response) => {
+  const doctor = await addDoctorReviewNote(req.params.id, req.body);
+  return res.status(StatusCodes.CREATED).json(successResponse(doctor, "Review note added"));
+});
+
+export const handleUpdateDoctorProfile = catchAsync<
+  Record<string, never>,
+  unknown,
+  DoctorProfileUpdateInput
+>(
+  async (
+    req: AuthenticatedRequest<Record<string, never>, unknown, DoctorProfileUpdateInput>,
+    res: Response
+  ) => {
+    if (!req.user || req.user.role !== "doctor") {
+      throw AppError.from({ statusCode: StatusCodes.FORBIDDEN, message: "Forbidden" });
+    }
+
+    const doctor = await updateDoctorProfile(req.user.id, req.body);
+    return res.json(successResponse(doctor, "Profile updated"));
+  }
+);
