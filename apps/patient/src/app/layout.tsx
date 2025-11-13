@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Inter, Poppins, IBM_Plex_Sans } from "next/font/google";
 import "@ui/styles/globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
 const inter = Inter({
-  variable: "--font-geist-sans",
+  variable: "--font-illajwala-body",
   subsets: ["latin"],
   display: "swap",
   weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const poppins = Poppins({
+  variable: "--font-illajwala-display",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700"],
+});
+
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-illajwala-mono",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -34,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${poppins.variable} ${plexSans.variable} antialiased`}>
         <AppProviders>
           <div className="flex min-h-screen flex-col bg-background">
             <SiteHeader />

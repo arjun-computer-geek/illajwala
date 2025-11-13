@@ -8,20 +8,15 @@ import {
   Button,
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
   Skeleton,
 } from "@illajwala/ui";
-import {
-  Activity,
-  Bell,
-  CalendarClock,
-  ClipboardCheck,
-  MapPin,
-  Settings,
-} from "lucide-react";
+import { Activity, CalendarClock, ClipboardCheck } from "lucide-react";
 import { AvailabilityPlanner } from "../../components/availability/availability-planner";
 import { useDoctorAuth } from "../../hooks/use-auth";
+import { DoctorShell } from "../../components/layout/doctor-shell";
 
 const dashboardHighlights = [
   {
@@ -88,17 +83,17 @@ const upcomingVisits = [
 
 const DashboardSkeleton = () => (
   <div className="space-y-6">
-    <div className="h-32 animate-pulse rounded-3xl bg-muted/40" />
+    <div className="h-32 animate-pulse rounded-xl bg-muted/40" />
     <div className="grid gap-4 sm:grid-cols-3">
       {Array.from({ length: 3 }).map((_, index) => (
-        <Skeleton key={index} className="h-32 rounded-2xl" />
+        <Skeleton key={index} className="h-32 rounded-lg" />
       ))}
     </div>
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <Skeleton className="h-[520px] rounded-2xl" />
+      <Skeleton className="h-[520px] rounded-lg" />
       <div className="space-y-4">
-        <Skeleton className="h-48 rounded-2xl" />
-        <Skeleton className="h-48 rounded-2xl" />
+        <Skeleton className="h-48 rounded-lg" />
+        <Skeleton className="h-48 rounded-lg" />
       </div>
     </div>
   </div>
@@ -106,7 +101,7 @@ const DashboardSkeleton = () => (
 
 export default function DoctorDashboardPage() {
   const router = useRouter();
-  const { doctor, hydrated, isAuthenticated } = useDoctorAuth();
+  const { doctor, hydrated, isAuthenticated, clearAuth } = useDoctorAuth();
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
@@ -116,11 +111,9 @@ export default function DoctorDashboardPage() {
 
   if (!hydrated) {
     return (
-      <main className="bg-muted/30 px-6 py-12">
-        <div className="mx-auto max-w-6xl">
-          <DashboardSkeleton />
-        </div>
-      </main>
+      <DoctorShell title="Loading dashboard" description="Preparing your clinic overview.">
+        <DashboardSkeleton />
+      </DoctorShell>
     );
   }
 
@@ -130,146 +123,138 @@ export default function DoctorDashboardPage() {
 
   const clinic = doctor.clinicLocations?.[0];
   const doctorId = doctor._id ?? "unknown";
+  const clinicLabel = clinic?.name ?? "Primary clinic";
+  const clinicLocation = clinic?.city ? `${clinicLabel} · ${clinic.city}` : clinicLabel;
 
   return (
-    <main className="bg-muted/30 pb-16 pt-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6">
-        <header className="rounded-3xl border border-border/70 bg-white/95 p-8 shadow-[0_38px_96px_-36px_rgba(32,113,182,0.35)] backdrop-blur-xl dark:border-border/40 dark:bg-background/85">
-          <div className="flex flex-col gap-7 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-4">
-              <Badge variant="outline" className="rounded-full border-primary/40 bg-primary/10 px-4 py-2 text-xs uppercase tracking-[0.32em] text-primary">
-                Doctor hub
-              </Badge>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                  Good day, Dr. {doctor.name.split(" ")[0]}
-                </h1>
-                <p className="max-w-3xl text-sm text-muted-foreground md:text-base">
-                  Keep operations steady: publish clinic slots, monitor upcoming visits, and action launch checklists for your care team.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">
-                {clinic?.city ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2">
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
-                    {clinic.city}
-                  </span>
-                ) : null}
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2">
-                  <Settings className="h-3.5 w-3.5 text-primary" />
-                  Availability drafts
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/80 px-4 py-2">
-                  <Bell className="h-3.5 w-3.5 text-primary" />
-                  Patient nudges enabled
-                </span>
-              </div>
-              <div>
-                <Button asChild variant="outline" className="rounded-full px-6 text-xs uppercase tracking-[0.28em]">
-                  <Link href="/profile">Update profile</Link>
-                </Button>
-              </div>
+    <DoctorShell
+      title={`Good day, Dr. ${doctor.name.split(" ")[0]}`}
+      description="Publish availability, track visits, and stay on top of tasks."
+      doctorName={doctor.name}
+      clinicName={clinic?.name ?? clinic?.city ?? null}
+      onSignOut={clearAuth}
+      actions={
+        <Button asChild size="sm" variant="outline">
+          <Link href="/profile">Edit profile</Link>
+        </Button>
+      }
+    >
+      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="rounded-lg border border-border bg-card shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Today&apos;s schedule</CardTitle>
+            <CardDescription>Keep your clinic operations flowing smoothly.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Clinic</p>
+              <p className="text-sm font-semibold text-foreground">{clinicLocation}</p>
             </div>
-            <Card className="max-w-sm border border-border/70 bg-white/90 shadow-none dark:border-border/40 dark:bg-background/80">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-[0.32em] text-primary/80">
-                  Today&apos;s brief
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Availability drafts</p>
+              <p className="text-sm text-foreground">Auto-save enabled</p>
+            </div>
+            <div className="rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Patient nudges</p>
+              <p className="text-sm text-foreground">SMS & email reminders</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-lg border border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              Today&apos;s brief
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-4 py-2.5">
+              <span>Visits scheduled</span>
+              <span className="text-base font-semibold text-foreground">8</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-4 py-2.5">
+              <span>Waitlist matches</span>
+              <span className="text-base font-semibold text-foreground">3</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-border bg-background/40 px-4 py-2.5">
+              <span>Payout alerts</span>
+              <span className="text-base font-semibold text-emerald-600">Clear</span>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {dashboardHighlights.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card key={item.title} className="rounded-lg border border-border bg-card shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                  {item.title}
                 </CardTitle>
+                <Icon className="h-4 w-4 text-primary" />
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-white/80 px-4 py-3 dark:bg-background/70">
-                  <span>Visits scheduled</span>
-                  <span className="text-base font-semibold text-foreground">8</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-white/80 px-4 py-3 dark:bg-background/70">
-                  <span>Waitlist matches</span>
-                  <span className="text-base font-semibold text-foreground">3</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl border border-border/50 bg-white/80 px-4 py-3 dark:bg-background/70">
-                  <span>Payout alerts</span>
-                  <span className="text-base font-semibold text-emerald-500">Clear</span>
-                </div>
+              <CardContent className="space-y-1">
+                <p className="text-2xl font-semibold text-foreground">{item.value}</p>
+                <CardDescription>{item.description}</CardDescription>
               </CardContent>
             </Card>
-          </div>
-        </header>
+          );
+        })}
+      </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {dashboardHighlights.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Card
-                key={item.title}
-                className="border border-border/60 bg-white/90 px-6 py-5 shadow-[0_28px_70px_-36px_rgba(32,113,182,0.28)] transition hover:-translate-y-1 dark:border-border/40 dark:bg-background/80"
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                    {item.title}
-                  </CardTitle>
-                  <Icon className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  <p className="text-3xl font-semibold text-foreground">{item.value}</p>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </section>
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
 
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
-
-          <div className="space-y-6">
-            <Card className="border border-border/60 bg-white/95 shadow-[0_30px_72px_-38px_rgba(32,113,182,0.3)] dark:border-border/40 dark:bg-background/85">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                  Upcoming visits
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {upcomingVisits.map((visit) => (
-                  <div
-                    key={`${visit.patient}-${visit.time}`}
-                    className="flex flex-col gap-2 rounded-xl border border-border/50 bg-white/90 px-4 py-3 text-sm dark:border-border/40 dark:bg-background/70"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-foreground">{visit.patient}</span>
-                      <span className="text-xs uppercase tracking-[0.28em] text-muted-foreground">{visit.time}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{visit.reason}</p>
-                    <Badge variant="outline" className="w-fit rounded-full border-primary/40 bg-primary/10 text-[10px] uppercase tracking-[0.28em] text-primary">
-                      {visit.mode}
-                    </Badge>
+        <div className="space-y-6">
+          <Card className="rounded-lg border border-border bg-card shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                Upcoming visits
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {upcomingVisits.map((visit) => (
+                <div
+                  key={`${visit.patient}-${visit.time}`}
+                  className="flex flex-col gap-2 rounded-md border border-border bg-background/40 px-4 py-3 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-foreground">{visit.patient}</span>
+                    <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{visit.time}</span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground">{visit.reason}</p>
+                  <Badge variant="outline" className="w-fit rounded-full border-border bg-muted/20 px-3 py-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                    {visit.mode}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-            <Card className="border border-border/60 bg-white/95 shadow-[0_30px_72px_-38px_rgba(32,113,182,0.3)] dark:border-border/40 dark:bg-background/85">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                  Clinic checklist
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {clinicTasks.map((task) => (
-                  <div key={task.title} className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-white/90 px-4 py-3 text-sm dark:border-border/40 dark:bg-background/70">
-                    <div>
-                      <p className="font-medium text-foreground">{task.title}</p>
-                      <p className="text-xs text-muted-foreground">{task.description}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="px-3 text-xs" asChild>
-                      <Link href={task.href}>{task.action}</Link>
-                    </Button>
+          <Card className="rounded-lg border border-border bg-card shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+                Clinic checklist
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {clinicTasks.map((task) => (
+                <div key={task.title} className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/40 px-4 py-3 text-sm">
+                  <div>
+                    <p className="font-medium text-foreground">{task.title}</p>
+                    <p className="text-xs text-muted-foreground">{task.description}</p>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      </div>
-    </main>
+                  <Button variant="ghost" size="sm" className="px-3 text-xs" asChild>
+                    <Link href={task.href}>{task.action}</Link>
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </DoctorShell>
   );
 }
 

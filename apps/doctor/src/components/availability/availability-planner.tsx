@@ -215,7 +215,7 @@ export const AvailabilityPlanner = ({ doctorId, clinicName }: AvailabilityPlanne
   );
 
   return (
-    <Card className="border-border/60 shadow-[0_24px_60px_-35px_rgba(32,113,182,0.32)] dark:border-border/40 dark:shadow-[0_30px_70px_-40px_rgba(16,52,70,0.55)]">
+    <Card className="rounded-lg border border-border bg-card shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Weekly availability</CardTitle>
         <CardDescription>
@@ -245,7 +245,7 @@ export const AvailabilityPlanner = ({ doctorId, clinicName }: AvailabilityPlanne
               return (
                 <div
                   key={day}
-                  className="rounded-2xl border border-border/60 bg-white/95 p-5 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg dark:bg-background/80"
+                  className="rounded-lg border border-border bg-background/40 p-5 transition-colors hover:border-primary/40 hover:bg-background/60"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -357,7 +357,7 @@ export const AvailabilityPlanner = ({ doctorId, clinicName }: AvailabilityPlanne
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <CardFooter className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-muted-foreground sm:text-sm">
           Changes are cached in your browser. Illajwala ops will migrate these templates once the scheduling API is live.
         </div>

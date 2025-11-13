@@ -219,7 +219,7 @@ export const BookingsTable = () => {
       return (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-24 rounded-2xl" />
+          <Skeleton key={index} className="h-24 rounded-lg" />
           ))}
         </div>
       );
@@ -227,7 +227,7 @@ export const BookingsTable = () => {
 
     if (appointments.length === 0) {
       return (
-        <div className="rounded-2xl border border-border/60 bg-muted/20 p-8 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-border bg-muted/20 p-6 text-sm text-muted-foreground">
           No appointments found for the selected filters.
         </div>
       );
@@ -244,7 +244,7 @@ export const BookingsTable = () => {
           return (
             <div
               key={appointment._id}
-              className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-white/95 px-5 py-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg dark:border-border/40 dark:bg-background/85"
+              className="flex flex-col gap-4 rounded-lg border border-border bg-background/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-background/60"
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
@@ -288,7 +288,7 @@ export const BookingsTable = () => {
               </div>
 
               {appointment.notes ? (
-                <div className="rounded-xl border border-border/50 bg-muted/20 p-3 text-xs text-muted-foreground dark:border-border/40 dark:bg-background/70">
+                <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
                   {appointment.notes}
                 </div>
               ) : null}
@@ -332,7 +332,7 @@ export const BookingsTable = () => {
   }, [appointments, handleManualPayment, handleManualStatus, isLoading, processingId]);
 
   return (
-    <Card className="border border-border/60 bg-white/95 shadow-[0_28px_72px_-36px_rgba(32,113,182,0.28)] dark:border-border/40 dark:bg-background/85">
+    <Card className="rounded-lg border border-border bg-card shadow-sm">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>

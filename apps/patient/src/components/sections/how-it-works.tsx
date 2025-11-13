@@ -17,8 +17,8 @@ const steps = [
 
 export const HowItWorksSection = () => {
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#FFFFFF_0%,#F3FAFC_100%)] py-24 dark:bg-[linear-gradient(135deg,rgba(8,22,28,0.92)_0%,rgba(9,30,40,0.92)_100%)]">
-      <div className="absolute inset-x-0 top-0 -z-10 h-48 bg-[radial-gradient(circle_at_top,rgba(32,113,182,0.18),transparent_65%)] dark:bg-[radial-gradient(circle_at_top,rgba(48,214,200,0.14),transparent_60%)]" />
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#FBFEFE_0%,#F1FAFB_100%)] py-24 dark:bg-[linear-gradient(135deg,rgba(12,17,22,0.95)_0%,rgba(16,34,46,0.92)_100%)]">
+      <div className="absolute inset-x-0 top-0 -z-10 h-48 bg-[radial-gradient(circle_at_top,rgba(44,167,163,0.15),transparent_65%)] dark:bg-[radial-gradient(circle_at_top,rgba(61,190,133,0.18),transparent_60%)]" />
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
@@ -36,15 +36,18 @@ export const HowItWorksSection = () => {
           {steps.map((step, index) => (
             <div
               key={step.title}
-              className="relative flex h-full flex-col gap-4 rounded-[1.2rem] border border-border/50 bg-white/80 p-8 shadow-[0_20px_48px_-28px_rgba(32,113,182,0.25)] transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_24px_56px_-24px_rgba(32,113,182,0.3)] dark:border-border/40 dark:bg-background/70"
+              className="relative flex h-full flex-col gap-4 rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_26px_60px_-28px_rgba(30,144,187,0.28)] transition-transform duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_34px_80px_-28px_rgba(30,144,187,0.32)] dark:border-border/40 dark:bg-secondary/70"
             >
-              <span className="flex size-12 items-center justify-center rounded-2xl bg-accent/80 text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+              <span
+                className="flex size-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(44,167,163,0.25),rgba(30,144,187,0.45))] text-sm font-semibold uppercase tracking-[0.3em] text-primary"
+                style={{ fontFamily: "var(--font-illajwala-mono)" }}
+              >
                 {String(index + 1).padStart(2, "0")}
               </span>
               <h3 className="text-xl font-semibold text-foreground">{step.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
               <div className="mt-auto pt-6">
-                <div className="h-[3px] w-16 rounded-full bg-primary/70" />
+                <div className="h-[3px] w-16 rounded-full bg-[linear-gradient(135deg,#2CA7A3_0%,#1E90BB_100%)]" />
               </div>
             </div>
           ))}

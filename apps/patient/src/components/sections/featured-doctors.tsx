@@ -26,7 +26,8 @@ export const FeaturedDoctorsSection = () => {
   const doctors: Doctor[] = useMemo(() => data?.data ?? [], [data?.data]);
 
   return (
-    <section className="bg-[hsl(var(--background))] py-24">
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#F4FBFB_0%,#E9F8F8_65%,rgba(30,144,187,0.08)_120%)] py-24 dark:bg-[linear-gradient(135deg,rgba(12,17,22,0.96)_0%,rgba(16,34,46,0.92)_100%)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-[radial-gradient(circle_at_top_right,rgba(44,167,163,0.18),transparent_60%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(61,190,133,0.18),transparent_60%)]" />
       <Container>
         <div className="mx-auto max-w-3xl text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/80">
@@ -66,17 +67,17 @@ export const FeaturedDoctorsSection = () => {
 };
 
 const DoctorCardSkeleton = () => (
-  <div className="flex h-full flex-col justify-between rounded-[1.2rem] border border-border/40 bg-white/75 p-8 shadow-[0_18px_40px_-26px_rgba(32,113,182,0.28)] dark:border-border/30 dark:bg-background/70">
+  <div className="flex h-full flex-col justify-between rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_22px_50px_-28px_rgba(30,144,187,0.28)] dark:border-border/30 dark:bg-secondary/70">
     <div className="mx-auto h-24 w-24">
-      <Skeleton className="h-full w-full rounded-2xl bg-muted" />
+      <Skeleton className="h-full w-full rounded-[1.4rem] bg-muted" />
     </div>
-    <Skeleton className="mx-auto mt-6 h-6 w-40 rounded-full bg-muted" />
-    <Skeleton className="mx-auto h-4 w-28 rounded-full bg-muted" />
+    <Skeleton className="mx-auto mt-6 h-6 w-40 rounded-full bg-muted/70" />
+    <Skeleton className="mx-auto h-4 w-28 rounded-full bg-muted/70" />
     <div className="mt-6 space-y-4 text-center">
-      <Skeleton className="mx-auto h-4 w-32 rounded-full bg-muted" />
-      <Skeleton className="mx-auto h-4 w-48 rounded-full bg-muted" />
-      <Skeleton className="mx-auto h-8 w-36 rounded-full bg-muted" />
-      <Skeleton className="mx-auto h-12 w-full rounded-full bg-muted" />
+      <Skeleton className="mx-auto h-4 w-32 rounded-full bg-muted/70" />
+      <Skeleton className="mx-auto h-4 w-48 rounded-full bg-muted/70" />
+      <Skeleton className="mx-auto h-8 w-36 rounded-full bg-muted/70" />
+      <Skeleton className="mx-auto h-12 w-full rounded-full bg-muted/70" />
     </div>
   </div>
 );

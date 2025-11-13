@@ -122,18 +122,18 @@ export const HeroSection = () => {
   }, [specialtiesCount, supportedModesKey, totalFeatured]);
 
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#F3FAFC_0%,#E5F6F6_55%,rgba(32,113,182,0.12)_100%)] pb-28 pt-24 dark:bg-[linear-gradient(135deg,rgba(10,28,36,0.95)_0%,rgba(12,32,45,0.9)_50%,rgba(16,52,70,0.85)_100%)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(28,164,163,0.35),transparent_55%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(48,214,200,0.25),transparent_55%)]" />
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#F8FEFE_0%,#E7F8F8_55%,rgba(30,144,187,0.12)_105%)] pb-28 pt-24 dark:bg-[linear-gradient(135deg,rgba(12,17,22,0.98)_0%,rgba(16,34,46,0.95)_55%,rgba(30,144,187,0.28)_120%)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(44,167,163,0.32),transparent_58%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(61,190,133,0.18),transparent_60%)]" />
       <Container className="grid gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div className="space-y-10 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-5 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary shadow-[0_14px_32px_-22px_rgba(32,113,182,0.35)] backdrop-blur-sm dark:bg-background/60">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/50 bg-white/80 px-5 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-primary shadow-[0_18px_40px_-24px_rgba(30,144,187,0.28)] backdrop-blur-md dark:border-white/10 dark:bg-background/60">
             <CalendarHeart className="h-4 w-4" />
             Care without waiting
           </div>
           <div className="space-y-6">
             <h1 className="text-4xl font-semibold leading-tight text-foreground md:text-[3.2rem] md:leading-[1.05]">
               Book trusted doctors with{" "}
-              <span className="bg-[linear-gradient(135deg,#1CA4A3_0%,#2071B6_100%)] bg-clip-text text-transparent">
+              <span className="bg-[linear-gradient(135deg,#2CA7A3_0%,#1E90BB_100%)] bg-clip-text text-transparent">
                 calm confidence
               </span>
             </h1>
@@ -156,7 +156,7 @@ export const HeroSection = () => {
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-lg rounded-[1.6rem] bg-white/80 p-6 shadow-[0_34px_80px_-32px_rgba(32,113,182,0.35)] backdrop-blur-xl ring-1 ring-border/60 dark:bg-background/80 dark:ring-border/50">
+        <div className="relative mx-auto w-full max-w-lg rounded-[1.8rem] bg-white/85 p-6 shadow-[0_36px_92px_-32px_rgba(30,144,187,0.35)] backdrop-blur-xl ring-1 ring-border/50 dark:bg-secondary/70 dark:ring-border/40">
           <div className="rounded-[1.4rem] bg-[linear-gradient(160deg,rgba(28,164,163,0.16)_0%,rgba(32,113,182,0.12)_100%)] p-4">
             <Image
               src="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=800&q=80"
@@ -190,10 +190,10 @@ const QuickSearch = ({
   const popular = specialties.slice(0, 4);
 
   return (
-    <div className="rounded-[1.4rem] bg-white/85 p-6 shadow-[0_26px_60px_-28px_rgba(32,113,182,0.28)] backdrop-blur-xl ring-1 ring-border/60 dark:bg-background/70 dark:ring-border/40">
+    <div className="rounded-[1.6rem] border border-white/60 bg-white/90 p-6 shadow-[0_28px_64px_-30px_rgba(30,144,187,0.32)] backdrop-blur-xl dark:border-border/40 dark:bg-secondary/70">
       <div className="grid gap-4 md:grid-cols-[1.15fr_1.15fr_auto]">
         <Select defaultValue="all" disabled={loading || specialties.length === 0}>
-          <SelectTrigger className="h-12 rounded-[1.2rem] border border-border/60 bg-white/80 text-left text-base font-medium text-foreground shadow-[0_12px_30px_-24px_rgba(32,113,182,0.35)] transition-colors duration-200 ease-out hover:border-ring focus-visible:border-primary focus-visible:ring-0 dark:border-border/40 dark:bg-background/60">
+          <SelectTrigger className="h-12 rounded-[1.3rem] border border-border/60 bg-white text-left text-base font-medium text-foreground shadow-[0_14px_34px_-26px_rgba(30,144,187,0.3)] transition-colors duration-200 ease-out hover:border-primary/60 focus-visible:border-primary focus-visible:ring-0 dark:border-border/40 dark:bg-secondary/60">
             <SelectValue placeholder={loading ? "Loading specialties..." : "Select specialty"} />
           </SelectTrigger>
           <SelectContent>
@@ -208,19 +208,19 @@ const QuickSearch = ({
         <div className="relative">
           <MapPin className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="h-12 rounded-[1.2rem] border border-border/60 bg-white/80 pl-12 text-base font-medium shadow-[0_12px_30px_-24px_rgba(32,113,182,0.35)] dark:border-border/40 dark:bg-background/60 dark:shadow-none"
+            className="h-12 rounded-[1.3rem] border border-border/60 bg-white pl-12 text-base font-medium shadow-[0_14px_34px_-26px_rgba(30,144,187,0.3)] dark:border-border/40 dark:bg-secondary/60 dark:shadow-none"
             placeholder="City, clinic or neighbourhood"
           />
         </div>
         <Button
-          className="flex h-12 items-center gap-2 px-6 text-base"
+          className="flex h-12 items-center gap-2 px-6 text-base uppercase tracking-[0.28em]"
           onClick={onSearch}
         >
           <Search className="h-5 w-5" />
           Search
         </Button>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs font-medium uppercase tracking-[0.26em] text-muted-foreground">
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted-foreground">
         <span className="text-muted-foreground/70">
           Popular
         </span>
@@ -252,7 +252,7 @@ const HeroAvailabilityCard = ({
   const slot = getSlotDisplay(availability?.nextAvailableSlot ?? null);
 
   return (
-    <div className="absolute -bottom-12 left-1/2 w-[88%] -translate-x-1/2 rounded-[1.2rem] border border-border/60 bg-white/90 p-5 shadow-[0_24px_52px_-24px_rgba(32,113,182,0.32)] backdrop-blur-xl dark:border-border/40 dark:bg-background/85 dark:shadow-none">
+    <div className="absolute -bottom-12 left-1/2 w-[88%] -translate-x-1/2 rounded-[1.4rem] border border-border/50 bg-white/95 p-5 shadow-[0_26px_60px_-28px_rgba(30,144,187,0.32)] backdrop-blur-xl dark:border-border/40 dark:bg-secondary/75 dark:shadow-none">
       {loading ? (
         <div className="flex items-center justify-between gap-6">
           <div className="space-y-2">
@@ -301,14 +301,14 @@ const HeroAvailabilityCard = ({
 const LinkChip = ({ label }: { label: string }) => (
   <Link
     href={`/search?specialization=${encodeURIComponent(label)}`}
-    className="rounded-full border border-border/50 bg-white/70 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground transition-colors duration-200 ease-out hover:border-primary/60 hover:bg-accent/70 hover:text-primary dark:bg-background/60"
+    className="rounded-full border border-border/40 bg-white/80 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground transition-colors duration-200 ease-out hover:border-primary/70 hover:bg-primary/10 hover:text-primary dark:border-border/30 dark:bg-secondary/60"
   >
     {label}
   </Link>
 );
 
 const StatPill = ({ label }: { label: string }) => (
-  <span className="rounded-full border border-border/60 bg-white/70 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground shadow-[0_12px_28px_-24px_rgba(32,113,182,0.3)] backdrop-blur-sm dark:border-border/40 dark:bg-background/60">
+  <span className="rounded-full border border-border/50 bg-white/80 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground shadow-[0_16px_32px_-26px_rgba(30,144,187,0.28)] backdrop-blur-sm dark:border-border/40 dark:bg-secondary/60">
     {label}
   </span>
 );

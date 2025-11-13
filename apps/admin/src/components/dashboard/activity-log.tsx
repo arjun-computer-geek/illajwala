@@ -70,7 +70,7 @@ const formatTime = (iso: string) =>
   });
 
 export const ActivityLog = () => (
-  <Card className="border border-border/60 bg-white/95 shadow-[0_28px_72px_-36px_rgba(32,113,182,0.28)] dark:border-border/40 dark:bg-background/85">
+  <Card className="rounded-lg border border-border bg-card shadow-sm">
     <CardHeader className="pb-4">
       <CardTitle className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">
         Platform activity
@@ -84,7 +84,7 @@ export const ActivityLog = () => (
         return (
           <div
             key={entry.id}
-            className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-white/90 px-5 py-4 dark:border-border/40 dark:bg-background/80"
+            className="flex flex-col gap-3 rounded-lg border border-border bg-background/40 px-5 py-4"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">

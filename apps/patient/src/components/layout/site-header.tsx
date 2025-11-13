@@ -65,10 +65,10 @@ export const SiteHeader = () => {
     });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/50 bg-white/80 backdrop-blur-xl supports-backdrop-filter:bg-white/70 dark:border-border/40 dark:bg-background/80">
-      <Container className="flex h-16 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-white/80 shadow-[0_18px_48px_-30px_rgba(30,144,187,0.35)] backdrop-blur-xl supports-backdrop-filter:bg-white/65 dark:border-border/30 dark:bg-background/75">
+      <Container className="flex h-20 items-center justify-between gap-4">
         <Link href="/" className="group flex items-center gap-3">
-          <span className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-[1.2rem] bg-white shadow-[0_12px_28px_-18px_rgba(32,113,182,0.32)] transition-transform duration-200 group-hover:-translate-y-0.5 dark:bg-background/70">
+          <span className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-[0_20px_40px_-24px_rgba(44,167,163,0.45)] transition-transform duration-200 group-hover:-translate-y-0.5 dark:bg-secondary/70">
             <Image
               src="/logo.png"
               alt="illajwala logo"
@@ -79,11 +79,9 @@ export const SiteHeader = () => {
             />
           </span>
 
-          <span className="text-xl font-semibold uppercase tracking-[0.4em] text-muted-foreground">
+          <span className="text-xl font-semibold uppercase tracking-[0.42em] text-muted-foreground transition-colors group-hover:text-foreground">
             illajwala
           </span>
-
-
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -118,11 +116,11 @@ export const SiteHeader = () => {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="ghost" size="sm" className="px-4" asChild>
+              <Button variant="ghost" size="sm" className="px-4 text-sm font-semibold" asChild>
                 <Link href="/auth/patient/login">Sign in</Link>
               </Button>
-              <Button variant="default" size="sm" className="px-5" asChild>
-                <Link href="/auth/patient/register">Create account</Link>
+              <Button size="sm" className="px-5 text-sm font-semibold uppercase tracking-[0.3em]" asChild>
+                <Link href="/search">Book appointment</Link>
               </Button>
             </>
           )}
@@ -162,7 +160,7 @@ export const SiteHeader = () => {
                       <Link href="/auth/patient/login">Sign in</Link>
                     </Button>
                     <Button asChild onClick={() => setOpen(false)}>
-                      <Link href="/auth/patient/register">Create account</Link>
+                      <Link href="/search">Book appointment</Link>
                     </Button>
                   </>
                 )}

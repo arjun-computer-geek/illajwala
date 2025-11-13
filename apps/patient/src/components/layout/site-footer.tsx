@@ -25,9 +25,9 @@ const companyLinks = [
 
 export const SiteFooter = () => {
   return (
-    <footer className="bg-[linear-gradient(135deg,#0B2330_0%,#114062_55%,#1CA4A3_120%)] text-white">
+    <footer className="bg-[linear-gradient(135deg,#0C1116_0%,#114062_55%,#1E90BB_115%)] text-white">
       <Container className="relative py-16">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_65%)]" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.12),transparent_65%)]" />
         <div className="grid gap-12 md:grid-cols-[1.3fr_repeat(3,minmax(0,1fr))]">
           <div className="space-y-5">
             <Link href="/" className="group flex items-center gap-4">

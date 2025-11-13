@@ -174,7 +174,7 @@ export const ProviderReviewQueue = () => {
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex items-center gap-2 rounded-xl border border-border/50 bg-white/90 px-3 py-2 text-xs dark:border-border/40 dark:bg-background/70"
+            className="flex items-center gap-2 rounded-lg border border-border bg-background/40 px-3 py-2 text-xs"
           >
             <span
               className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
@@ -191,7 +191,7 @@ export const ProviderReviewQueue = () => {
   };
 
   return (
-    <Card className="border border-border/60 bg-white/95 shadow-[0_28px_72px_-36px_rgba(32,113,182,0.28)] dark:border-border/40 dark:bg-background/85">
+    <Card className="rounded-lg border border-border bg-card shadow-sm">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -201,7 +201,7 @@ export const ProviderReviewQueue = () => {
             <CardDescription>Centralise your credential checks before activating clinics.</CardDescription>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="rounded-full border-primary/40 bg-primary/10 text-primary">
+            <Badge variant="outline" className="rounded-full border-border bg-muted/30 text-muted-foreground">
               {pendingCount} pending
             </Badge>
             <Button size="sm" variant="ghost" className="gap-2 px-3 text-xs" onClick={handleRefresh} disabled={isRefreshing}>
@@ -216,11 +216,11 @@ export const ProviderReviewQueue = () => {
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-24 rounded-2xl" />
+              <Skeleton key={index} className="h-24 rounded-lg" />
             ))}
           </div>
         ) : doctors.length === 0 ? (
-          <div className="rounded-2xl border border-border/60 bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
             No providers awaiting review. Once new clinics submit credentials, they will appear here for approval.
           </div>
         ) : (
@@ -231,7 +231,7 @@ export const ProviderReviewQueue = () => {
             return (
               <div
                 key={doctor._id}
-                className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-white/90 px-5 py-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg dark:border-border/40 dark:bg-background/80"
+                className="flex flex-col gap-4 rounded-lg border border-border bg-background/40 px-5 py-4 transition-colors hover:border-primary/40 hover:bg-background/60"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
@@ -272,7 +272,7 @@ export const ProviderReviewQueue = () => {
 
                 {renderChecklist(doctor)}
 
-                <div className="space-y-2 rounded-xl border border-border/50 bg-muted/30 p-3 text-xs text-muted-foreground dark:border-border/40 dark:bg-background/70">
+                <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
                   <p className="font-medium text-foreground">Review notes</p>
                   {doctor.reviewNotes?.length ? (
                     <ol className="space-y-1">
