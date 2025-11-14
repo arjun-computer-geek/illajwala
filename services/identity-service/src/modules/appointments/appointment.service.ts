@@ -7,8 +7,8 @@ import type {
   ConfirmAppointmentPaymentInput,
   UpdateAppointmentPaymentInput,
 } from './appointment.schema';
-import type { AuthenticatedRequest } from '../../middlewares/auth';
-import { AppError } from '../../utils/app-error';
+import type { AuthenticatedRequest } from '../../utils';
+import { AppError } from '../../utils';
 import { DoctorModel } from '../doctors/doctor.model';
 import { acquireSlotLock, releaseSlotLock } from './slot-lock.service';
 import { env } from '../../config/env';

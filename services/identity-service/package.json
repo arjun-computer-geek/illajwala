@@ -16,6 +16,7 @@
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
+    "@illajwala/shared": "workspace:*",
     "@illajwala/types": "workspace:*",
     "@illajwala/utils": "workspace:*",
     "bcrypt": "^6.0.0",
@@ -46,7 +47,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.10.0",
-    "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.15.0",

@@ -6,10 +6,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import { clientOrigins, isProd } from './config/env';
 import { rootRouter } from './modules/routes';
-import { notFoundHandler } from './middlewares/not-found';
-import { errorHandler } from './middlewares/error-handler';
-import { sanitizeInput } from './middlewares/sanitize-input';
-import { requestLogger } from './middlewares/request-logger';
+import { notFoundHandler, errorHandler, sanitizeInput, requestLogger } from './middlewares';
 import { metricsHandler } from './metrics';
 
 const app: Application = express();

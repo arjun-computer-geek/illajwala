@@ -10,7 +10,7 @@ import type {
   DoctorProfileUpdateInput,
 } from './doctor.schema';
 import { AppointmentModel } from '../appointments/appointment.model';
-import { AppError } from '../../utils/app-error';
+import { AppError } from '../../utils';
 
 export const createDoctor = async (payload: CreateDoctorInput, tenantId: string) => {
   const docPayload: Record<string, unknown> = {

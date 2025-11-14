@@ -1,10 +1,13 @@
 import type { Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { successResponse, paginateResponse } from '../../utils/api-response';
-import { catchAsync } from '../../utils/catch-async';
-import { AppError } from '../../utils/app-error';
-import type { AuthenticatedRequest } from '../../middlewares/auth';
-import { requireTenantId } from '../../utils/tenant';
+import {
+  successResponse,
+  paginateResponse,
+  catchAsync,
+  AppError,
+  type AuthenticatedRequest,
+  requireTenantId,
+} from '../../utils';
 import {
   enqueueWaitlistEntry,
   listWaitlistEntries,

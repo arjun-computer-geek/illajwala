@@ -1,10 +1,10 @@
-import { createApiClient } from "@illajwala/api-client";
+import { createApiClient } from '@illajwala/api-client';
 import {
   tokenRefreshResponseSchema,
   type ApiResponse,
   type TokenRefreshResponse,
-} from "@illajwala/types";
-import { appConfig } from "./config";
+} from '@illajwala/types';
+import { appConfig } from './config';
 
 let authToken: string | null = null;
 let tenantId: string | null = null;
@@ -61,11 +61,9 @@ export const setTenantContext = (id: string | null) => {
 
 const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    const response = await apiClient.post<ApiResponse<TokenRefreshResponse>>(
-      "/auth/refresh",
-      {},
-      { skipAuthRefresh: true } as any
-    );
+    const response = await apiClient.post<ApiResponse<TokenRefreshResponse>>('/auth/refresh', {}, {
+      skipAuthRefresh: true,
+    } as any);
     const result = tokenRefreshResponseSchema.parse(response.data.data);
 
     setAuthToken(result.token);
@@ -74,7 +72,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
     return result.token;
   } catch (error) {
-    console.warn("[api] Refresh token request failed:", error);
+    console.warn('[api] Refresh token request failed:', error);
     setAuthToken(null);
     setTenantContext(null);
     notifyUnauthorizedListeners();
@@ -88,21 +86,25 @@ export const apiClient = createApiClient({
   getTenantId: () => tenantId,
   refreshAccessToken,
   onUnauthorized: () => {
-    console.warn("[api] Request unauthorized – clearing auth session");
+    console.warn('[api] Request unauthorized – clearing auth session');
     setAuthToken(null);
     setTenantContext(null);
     notifyUnauthorizedListeners();
   },
 });
 
+// Export getters for use in service-specific clients
+export const getAuthToken = () => authToken;
+export const getTenantContext = () => tenantId;
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      console.error("API error:", error.response.data);
+      console.error('API error:', error.response.data);
     } else {
-      console.error("API error:", error.message);
+      console.error('API error:', error.message);
     }
     return Promise.reject(error);
-  }
+  },
 );

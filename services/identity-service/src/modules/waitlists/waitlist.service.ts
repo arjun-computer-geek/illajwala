@@ -7,7 +7,7 @@ import {
   type WaitlistPolicyDocument,
   type WaitlistStatus,
 } from './waitlist.model';
-import { AppError } from '../../utils/app-error';
+import { AppError } from '../../utils';
 import { publishWaitlistEvent } from '../events/waitlist-events.publisher';
 import { PatientModel, defaultNotificationPreferences } from '../patients/patient.model';
 import type {

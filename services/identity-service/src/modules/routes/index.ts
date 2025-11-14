@@ -3,14 +3,12 @@ import { appointmentRouter } from '../appointments/appointments.router';
 import { doctorRouter } from '../doctors/doctors.router';
 import { patientRouter } from '../patients/patients.router';
 import { authRouter } from '../auth/auth.router';
-import { statsRouter } from '../stats/stats.router';
 import { paymentsRouter } from '../payments/payments.router';
-import { analyticsRouter } from '../analytics/analytics.router';
 import { notificationsRouter } from '../notifications/notifications.router';
 import { realtimeRouter } from '../realtime/realtime.router';
 import { waitlistRouter } from '../waitlists/waitlists.router';
 import { clinicRouter } from '../clinics/clinics.router';
-import { apiRateLimit } from '../../middlewares/rate-limit';
+import { apiRateLimit } from '../../middlewares';
 
 export const rootRouter: Router = Router();
 
@@ -19,11 +17,11 @@ rootRouter.use(apiRateLimit);
 
 rootRouter.use('/auth', authRouter);
 rootRouter.use('/patients', patientRouter);
+// TODO: Remove these routes once inter-service communication is set up
+// These modules should be accessed via provider-service, appointment-service, etc.
 rootRouter.use('/doctors', doctorRouter);
 rootRouter.use('/appointments', appointmentRouter);
-rootRouter.use('/stats', statsRouter);
 rootRouter.use('/payments', paymentsRouter);
-rootRouter.use('/analytics', analyticsRouter);
 rootRouter.use('/notifications', notificationsRouter);
 rootRouter.use('/realtime', realtimeRouter);
 rootRouter.use('/waitlists', waitlistRouter);

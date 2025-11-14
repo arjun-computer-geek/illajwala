@@ -3,12 +3,12 @@
 import { Router } from 'express';
 import type { Response } from 'express';
 import { randomUUID } from 'crypto';
-import { requireAuth } from '../../middlewares/auth';
+import { requireAuth } from '../../middlewares';
 import { getOpsMetricsSummary } from '../analytics/analytics.service';
 import { AppointmentModel } from '../appointments/appointment.model';
 import { WaitlistModel } from '../waitlists/waitlist.model';
-import type { AuthenticatedRequest } from '../../middlewares/auth';
-import { requireTenantId } from '../../utils/tenant';
+import type { AuthenticatedRequest } from '../../utils';
+import { requireTenantId } from '../../utils';
 
 const setupSse = (res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');

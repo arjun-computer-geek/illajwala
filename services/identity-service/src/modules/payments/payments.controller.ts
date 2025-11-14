@@ -1,22 +1,20 @@
-import type { Request, RequestHandler, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-import { AppError } from "../../utils/app-error";
-import { catchAsync } from "../../utils/catch-async";
-import { verifySignature } from "./razorpay.client";
-import { successResponse } from "../../utils/api-response";
-import { AppointmentModel } from "../appointments/appointment.model";
+import type { Request, RequestHandler, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { AppError, catchAsync, successResponse } from '../../utils';
+import { verifySignature } from './razorpay.client';
+import { AppointmentModel } from '../appointments/appointment.model';
 
-const RAZORPAY_SIGNATURE_HEADER = "x-razorpay-signature";
+const RAZORPAY_SIGNATURE_HEADER = 'x-razorpay-signature';
 
 type RazorpayWebhookRequest = Request & { rawBody?: string };
 
 const razorpayWebhookHandler = async (req: Request, res: Response) => {
   const signatureHeader = req.headers[RAZORPAY_SIGNATURE_HEADER];
 
-  if (!signatureHeader || typeof signatureHeader !== "string") {
+  if (!signatureHeader || typeof signatureHeader !== 'string') {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Missing Razorpay signature",
+      message: 'Missing Razorpay signature',
     });
   }
 
@@ -25,7 +23,7 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
   if (!rawBody) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Unable to verify webhook payload",
+      message: 'Unable to verify webhook payload',
     });
   }
 
@@ -37,7 +35,7 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
   if (!isAuthentic) {
     throw AppError.from({
       statusCode: StatusCodes.UNAUTHORIZED,
-      message: "Invalid webhook signature",
+      message: 'Invalid webhook signature',
     });
   }
 
@@ -47,7 +45,7 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
   if (!eventName || !paymentEntity) {
     return res
       .status(StatusCodes.OK)
-      .json(successResponse({ ignored: true }, "Event payload missing payment entity"));
+      .json(successResponse({ ignored: true }, 'Event payload missing payment entity'));
   }
 
   const orderId: string | undefined = paymentEntity?.order_id;
@@ -55,28 +53,29 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
   if (!orderId) {
     return res
       .status(StatusCodes.OK)
-      .json(successResponse({ ignored: true }, "Webhook missing order reference"));
+      .json(successResponse({ ignored: true }, 'Webhook missing order reference'));
   }
 
-  const appointment = await AppointmentModel.findOne({ "payment.orderId": orderId });
+  const appointment = await AppointmentModel.findOne({ 'payment.orderId': orderId });
 
   if (!appointment || !appointment.payment) {
     return res
       .status(StatusCodes.OK)
-      .json(successResponse({ ignored: true }, "No appointment found for webhook"));
+      .json(successResponse({ ignored: true }, 'No appointment found for webhook'));
   }
 
   const now = new Date();
   const paymentStatus: string | undefined = paymentEntity?.status;
   const paymentId: string | undefined = paymentEntity?.id;
-  const failureReason: string | undefined = paymentEntity?.error_description ?? paymentEntity?.description;
+  const failureReason: string | undefined =
+    paymentEntity?.error_description ?? paymentEntity?.description;
 
   const historyType =
-    eventName === "payment.captured"
-      ? "payment-captured"
-      : eventName === "payment.failed"
-        ? "payment-failed"
-        : "webhook-received";
+    eventName === 'payment.captured'
+      ? 'payment-captured'
+      : eventName === 'payment.failed'
+        ? 'payment-failed'
+        : 'webhook-received';
 
   appointment.payment.history = [
     ...(appointment.payment.history ?? []),
@@ -91,17 +90,17 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
     },
   ];
 
-  if (eventName === "payment.captured" || paymentStatus === "captured") {
-    if (appointment.payment.status !== "captured") {
-      appointment.payment.status = "captured";
+  if (eventName === 'payment.captured' || paymentStatus === 'captured') {
+    if (appointment.payment.status !== 'captured') {
+      appointment.payment.status = 'captured';
       if (paymentId) {
         appointment.payment.paymentId = paymentId;
       }
       appointment.payment.capturedAt = now;
-      appointment.status = "confirmed";
+      appointment.status = 'confirmed';
     }
-  } else if (eventName === "payment.failed" || paymentStatus === "failed") {
-    appointment.payment.status = "failed";
+  } else if (eventName === 'payment.failed' || paymentStatus === 'failed') {
+    appointment.payment.status = 'failed';
     appointment.payment.failedAt = now;
     if (paymentId) {
       appointment.payment.paymentId = paymentId;
@@ -109,15 +108,13 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
     if (failureReason) {
       appointment.notes = [appointment.notes, `Payment failed: ${failureReason}`]
         .filter(Boolean)
-        .join("\n");
+        .join('\n');
     }
   }
 
   await appointment.save();
 
-  return res.status(StatusCodes.OK).json(successResponse({ processed: true }, "Webhook processed"));
+  return res.status(StatusCodes.OK).json(successResponse({ processed: true }, 'Webhook processed'));
 };
 
 export const handleRazorpayWebhook: RequestHandler = catchAsync(razorpayWebhookHandler);
-
-
