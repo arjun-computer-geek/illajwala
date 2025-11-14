@@ -1,10 +1,10 @@
-import type { Request, Response, NextFunction } from "express";
-import { StatusCodes } from "http-status-codes";
-import { redis } from "../config/redis";
-import { AppError } from "../utils/app-error";
-import { getTenantIdFromHeaders } from "../utils/tenant";
+import type { Request, Response, NextFunction } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { redis } from '../config/redis';
+import { AppError } from '../utils/app-error';
+import { getTenantIdFromHeaders } from '../utils/tenant';
 
-const RATE_LIMIT_PREFIX = "illajwala:rate-limit";
+const RATE_LIMIT_PREFIX = 'illajwala:rate-limit';
 
 interface RateLimitOptions {
   windowMs: number; // Time window in milliseconds
@@ -16,9 +16,9 @@ interface RateLimitOptions {
 
 const defaultKeyGenerator = (req: Request): string => {
   const tenantId = getTenantIdFromHeaders(req);
-  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const path = req.path;
-  return `${RATE_LIMIT_PREFIX}:${tenantId || "global"}:${path}:${ip}`;
+  return `${RATE_LIMIT_PREFIX}:${tenantId || 'global'}:${path}:${ip}`;
 };
 
 export const rateLimit = (options: RateLimitOptions) => {
@@ -34,7 +34,6 @@ export const rateLimit = (options: RateLimitOptions) => {
     try {
       const key = keyGenerator(req);
       const now = Date.now();
-      const windowStart = now - windowMs;
 
       // Get current count
       const count = await redis.get(key);
@@ -44,10 +43,10 @@ export const rateLimit = (options: RateLimitOptions) => {
         const ttl = await redis.ttl(key);
         const retryAfter = ttl > 0 ? ttl : Math.ceil(windowMs / 1000);
 
-        res.setHeader("Retry-After", String(retryAfter));
-        res.setHeader("X-RateLimit-Limit", String(maxRequests));
-        res.setHeader("X-RateLimit-Remaining", "0");
-        res.setHeader("X-RateLimit-Reset", String(Math.ceil((now + windowMs) / 1000)));
+        res.setHeader('Retry-After', String(retryAfter));
+        res.setHeader('X-RateLimit-Limit', String(maxRequests));
+        res.setHeader('X-RateLimit-Remaining', '0');
+        res.setHeader('X-RateLimit-Reset', String(Math.ceil((now + windowMs) / 1000)));
 
         throw AppError.from({
           statusCode: StatusCodes.TOO_MANY_REQUESTS,
@@ -56,9 +55,9 @@ export const rateLimit = (options: RateLimitOptions) => {
       }
 
       // Set headers
-      res.setHeader("X-RateLimit-Limit", String(maxRequests));
-      res.setHeader("X-RateLimit-Remaining", String(Math.max(0, maxRequests - currentCount - 1)));
-      res.setHeader("X-RateLimit-Reset", String(Math.ceil((now + windowMs) / 1000)));
+      res.setHeader('X-RateLimit-Limit', String(maxRequests));
+      res.setHeader('X-RateLimit-Remaining', String(Math.max(0, maxRequests - currentCount - 1)));
+      res.setHeader('X-RateLimit-Reset', String(Math.ceil((now + windowMs) / 1000)));
 
       // Track response to conditionally increment
       const originalSend = res.send.bind(res);
@@ -105,3 +104,31 @@ export const lenientRateLimit = rateLimit({
   maxRequests: 100,
 });
 
+// Login rate limiter: 5 attempts per 15 minutes
+export const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 5,
+  keyGenerator: (req: Request) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const path = req.path;
+    return `${RATE_LIMIT_PREFIX}:login:${path}:${ip}`;
+  },
+  skipSuccessfulRequests: true, // Only count failed login attempts
+});
+
+// Payment rate limiter: 10 requests per minute
+export const paymentRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 10,
+  keyGenerator: (req: Request) => {
+    const tenantId = getTenantIdFromHeaders(req);
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    return `${RATE_LIMIT_PREFIX}:payment:${tenantId || 'global'}:${ip}`;
+  },
+});
+
+// API rate limiter: 100 requests per minute per IP
+export const apiRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 100,
+});

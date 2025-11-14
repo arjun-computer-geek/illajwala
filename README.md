@@ -5,6 +5,7 @@ A multi-tenant healthcare appointment booking platform connecting patients with 
 ## Overview
 
 Illajwala VisitNow enables seamless patient-doctor interactions from discovery to follow-up, with support for:
+
 - Multi-clinic scheduling
 - Waitlist management
 - Payment processing
@@ -31,6 +32,7 @@ Illajwala VisitNow enables seamless patient-doctor interactions from discovery t
 ### Setup
 
 1. **Clone and install:**
+
    ```bash
    git clone <repository-url>
    cd illajwala
@@ -38,17 +40,20 @@ Illajwala VisitNow enables seamless patient-doctor interactions from discovery t
    ```
 
 2. **Start infrastructure:**
+
    ```bash
    cd infra
    docker compose up -d
    ```
 
 3. **Initialize MongoDB:**
+
    ```bash
    docker exec -it illajwala-mongodb mongosh --eval "rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'illajwala-mongodb:27017' }]})"
    ```
 
 4. **Configure environment:**
+
    ```bash
    cd services/identity-service
    cp env.sample .env
@@ -56,6 +61,7 @@ Illajwala VisitNow enables seamless patient-doctor interactions from discovery t
    ```
 
 5. **Seed database:**
+
    ```bash
    pnpm db:seed
    ```
@@ -122,6 +128,7 @@ illajwala/
 
 ## Documentation
 
+- [Current Status](./docs/STATUS.md) - Platform status and feature completion
 - [Local Development Guide](./docs/local-development.md)
 - [Development Guide](./docs/DEVELOPMENT.md)
 - [Contributing Guide](./docs/CONTRIBUTING.md)
@@ -132,6 +139,7 @@ illajwala/
 ## Features
 
 ### Patient Features
+
 - Doctor search and discovery
 - Appointment booking
 - Waitlist enrollment
@@ -139,6 +147,7 @@ illajwala/
 - Profile management
 
 ### Doctor Features
+
 - Schedule management
 - Availability publishing
 - Appointment queue
@@ -146,6 +155,7 @@ illajwala/
 - Patient management
 
 ### Admin Features
+
 - Doctor onboarding and verification
 - Clinic management
 - Analytics dashboard
@@ -155,6 +165,7 @@ illajwala/
 ## Multi-Tenant Architecture
 
 The platform uses a shared database with tenant isolation:
+
 - All data includes `tenantId` for isolation
 - JWT tokens include tenant context
 - All queries filter by tenant
@@ -233,4 +244,3 @@ MIT
 ## Support
 
 For questions or issues, please refer to the documentation or create an issue in the repository.
-

@@ -1,5 +1,5 @@
-import { Router } from "express";
-import type { Router as ExpressRouter } from "express";
+import { Router } from 'express';
+import type { Router as ExpressRouter } from 'express';
 import {
   handleLoginDoctor,
   handleLoginPatient,
@@ -7,37 +7,41 @@ import {
   handleLoginAdmin,
   handleRefreshSession,
   handleLogout,
-} from "./auth.controller";
-import { validateRequest } from "../../middlewares/validate-request";
+} from './auth.controller';
+import { validateRequest } from '../../middlewares/validate-request';
+import { loginRateLimit, moderateRateLimit } from '../../middlewares/rate-limit';
 import {
   loginDoctorSchema,
   loginPatientSchema,
   loginAdminSchema,
   registerPatientSchema,
-} from "./auth.schema";
+} from './auth.schema';
 
 export const authRouter: ExpressRouter = Router();
 
 authRouter.post(
-  "/patient/register",
+  '/patient/register',
+  moderateRateLimit,
   validateRequest({ body: registerPatientSchema }),
-  handleRegisterPatient
+  handleRegisterPatient,
 );
 authRouter.post(
-  "/patient/login",
+  '/patient/login',
+  loginRateLimit,
   validateRequest({ body: loginPatientSchema }),
-  handleLoginPatient
+  handleLoginPatient,
 );
 authRouter.post(
-  "/doctor/login",
+  '/doctor/login',
+  loginRateLimit,
   validateRequest({ body: loginDoctorSchema }),
-  handleLoginDoctor
+  handleLoginDoctor,
 );
 authRouter.post(
-  "/admin/login",
+  '/admin/login',
+  loginRateLimit,
   validateRequest({ body: loginAdminSchema }),
-  handleLoginAdmin
+  handleLoginAdmin,
 );
-authRouter.post("/refresh", handleRefreshSession);
-authRouter.post("/logout", handleLogout);
-
+authRouter.post('/refresh', moderateRateLimit, handleRefreshSession);
+authRouter.post('/logout', moderateRateLimit, handleLogout);

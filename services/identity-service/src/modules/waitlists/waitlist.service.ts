@@ -358,19 +358,21 @@ export const listWaitlistEntries = async ({
     WaitlistModel.find(filter)
       .sort(sort)
       .skip((page - 1) * pageSize)
-      .limit(pageSize),
+      .limit(pageSize)
+      .lean(),
     WaitlistModel.countDocuments(filter),
   ]);
 
   return { items, total };
 };
 
-export const getWaitlistEntryById = async (tenantId: string, id: ObjectIdLike) => {
+export const getWaitlistEntryById = async (tenantId: string, id: ObjectIdLike, lean = false) => {
   const entryId = toObjectId(id);
   if (!entryId) {
     return null;
   }
-  return WaitlistModel.findOne({ _id: entryId, tenantId });
+  const query = WaitlistModel.findOne({ _id: entryId, tenantId });
+  return lean ? query.lean() : query;
 };
 
 export type UpdateWaitlistStatusInput = {
@@ -782,7 +784,11 @@ export const getWaitlistAnalytics = async ({
     matchFilter.createdAt = dateFilter;
   }
 
-  const allEntries = await WaitlistModel.find(matchFilter).lean();
+  // Use aggregation pipeline for better performance with large datasets
+  // For now, keep the existing approach but add .lean() for memory efficiency
+  const allEntries = await WaitlistModel.find(matchFilter)
+    .select('status createdAt updatedAt audit priorityScore')
+    .lean();
 
   const totalEntries = allEntries.length;
 

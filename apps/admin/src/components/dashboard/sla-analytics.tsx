@@ -24,39 +24,10 @@ type SLAMetric = {
   icon: React.ElementType;
 };
 
-// Mock SLA data - replace with real API call when backend is ready
-const mockSLAData = {
-  verificationSLA: {
-    average: 36, // hours
-    target: 48,
-    met: 95.2, // percentage
-  },
-  incidentResolution: {
-    average: 2.5, // hours
-    target: 4,
-    met: 98.1,
-  },
-  payoutProcessing: {
-    average: 24, // hours
-    target: 48,
-    met: 99.4,
-  },
-  clinicActivation: {
-    average: 5, // days
-    target: 7,
-    met: 92.8,
-  },
-};
-
 export const SLAAnalytics = () => {
-  // TODO: Replace with real API call
   const { data, isLoading } = useQuery({
     queryKey: [...adminQueryKeys.opsMetrics(), 'sla'],
-    queryFn: async () => {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return mockSLAData;
-    },
+    queryFn: () => adminAnalyticsApi.getSLAMetrics(),
     staleTime: 5 * 60_000, // 5 minutes
   });
 

@@ -1,6 +1,6 @@
-import type { FilterQuery } from "mongoose";
-import { ClinicModel, type ClinicDocument } from "./clinic.model";
-import type { CreateClinicInput, UpdateClinicInput, ListClinicQuery } from "./clinic.schema";
+import type { FilterQuery } from 'mongoose';
+import { ClinicModel, type ClinicDocument } from './clinic.model';
+import type { CreateClinicInput, UpdateClinicInput, ListClinicQuery } from './clinic.schema';
 
 type PaginationOptions = {
   page?: number;
@@ -10,7 +10,12 @@ type PaginationOptions = {
 const buildPagination = ({ page = 1, pageSize = 20 }: PaginationOptions) => {
   const safePage = Math.max(1, page);
   const safePageSize = Math.max(1, Math.min(pageSize, 100));
-  return { page: safePage, pageSize: safePageSize, skip: (safePage - 1) * safePageSize, limit: safePageSize };
+  return {
+    page: safePage,
+    pageSize: safePageSize,
+    skip: (safePage - 1) * safePageSize,
+    limit: safePageSize,
+  };
 };
 
 export const createClinic = async (tenantId: string, payload: CreateClinicInput) => {
@@ -18,7 +23,7 @@ export const createClinic = async (tenantId: string, payload: CreateClinicInput)
     tenantId,
     name: payload.name,
     slug: payload.slug,
-    timezone: payload.timezone ?? "Asia/Kolkata",
+    timezone: payload.timezone ?? 'Asia/Kolkata',
     address: payload.address,
     city: payload.city,
     phone: payload.phone,
@@ -45,19 +50,19 @@ export const updateClinic = async (tenantId: string, id: string, payload: Update
       ...(payload.waitlistOverrides ? { waitlistOverrides: payload.waitlistOverrides } : {}),
       ...(payload.metadata ? { metadata: payload.metadata } : {}),
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
 export const listClinics = async (
   tenantId: string,
-  { city, search, page, pageSize }: ListClinicQuery
+  { city, search, page, pageSize }: ListClinicQuery,
 ): Promise<{ items: ClinicDocument[]; total: number }> => {
   const filter: FilterQuery<ClinicDocument> = { tenantId };
   if (city) {
     filter.city = city;
   }
   if (search) {
-    const regex = new RegExp(search, "i");
+    const regex = new RegExp(search, 'i');
     filter.$or = [{ name: regex }, { slug: regex }, { city: regex }];
   }
 
@@ -77,8 +82,8 @@ export const listClinics = async (
   return { items, total };
 };
 
-export const getClinicById = async (tenantId: string, id: string) => ClinicModel.findOne({ _id: id, tenantId });
+export const getClinicById = async (tenantId: string, id: string) =>
+  ClinicModel.findOne({ _id: id, tenantId });
 
-export const getClinicBySlug = async (tenantId: string, slug: string) => ClinicModel.findOne({ tenantId, slug });
-
-
+export const getClinicBySlug = async (tenantId: string, slug: string) =>
+  ClinicModel.findOne({ tenantId, slug });

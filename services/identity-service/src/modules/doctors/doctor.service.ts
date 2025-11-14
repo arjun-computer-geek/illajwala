@@ -1,10 +1,6 @@
-import { FilterQuery, Types } from "mongoose";
-import { StatusCodes } from "http-status-codes";
-import {
-  DoctorModel,
-  type DoctorDocument,
-  type DoctorReviewStatus,
-} from "./doctor.model";
+import { FilterQuery, Types } from 'mongoose';
+import { StatusCodes } from 'http-status-codes';
+import { DoctorModel, type DoctorDocument, type DoctorReviewStatus } from './doctor.model';
 import type {
   CreateDoctorInput,
   DoctorAvailabilityParams,
@@ -12,9 +8,9 @@ import type {
   DoctorReviewActionInput,
   DoctorAddNoteInput,
   DoctorProfileUpdateInput,
-} from "./doctor.schema";
-import { AppointmentModel } from "../appointments/appointment.model";
-import { AppError } from "../../utils/app-error";
+} from './doctor.schema';
+import { AppointmentModel } from '../appointments/appointment.model';
+import { AppError } from '../../utils/app-error';
 
 export const createDoctor = async (payload: CreateDoctorInput, tenantId: string) => {
   const docPayload: Record<string, unknown> = {
@@ -22,8 +18,10 @@ export const createDoctor = async (payload: CreateDoctorInput, tenantId: string)
     tenantId,
   };
 
-  if ("primaryClinicId" in payload) {
-    docPayload.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+  if ('primaryClinicId' in payload) {
+    docPayload.primaryClinicId = payload.primaryClinicId
+      ? new Types.ObjectId(payload.primaryClinicId)
+      : null;
   }
 
   if (payload.clinicIds) {
@@ -39,7 +37,9 @@ export const updateDoctor = async (id: string, tenantId: string, payload: Update
   };
 
   if (payload.primaryClinicId !== undefined) {
-    updatePayload.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+    updatePayload.primaryClinicId = payload.primaryClinicId
+      ? new Types.ObjectId(payload.primaryClinicId)
+      : null;
   }
 
   if (payload.clinicIds !== undefined) {
@@ -49,22 +49,25 @@ export const updateDoctor = async (id: string, tenantId: string, payload: Update
   return DoctorModel.findOneAndUpdate({ _id: id, tenantId }, updatePayload, { new: true });
 };
 
-export const updateDoctorProfile = async (id: string, tenantId: string, payload: DoctorProfileUpdateInput) => {
+export const updateDoctorProfile = async (
+  id: string,
+  tenantId: string,
+  payload: DoctorProfileUpdateInput,
+) => {
   const doctor = await DoctorModel.findOne({ _id: id, tenantId });
   if (!doctor) {
-    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Doctor not found' });
   }
 
   if (payload.onboardingChecklist) {
-    const updates = Object.entries(payload.onboardingChecklist).reduce<Partial<DoctorDocument["onboardingChecklist"]>>(
-      (accumulator, [key, value]) => {
-        if (value !== undefined) {
-          accumulator[key as keyof DoctorDocument["onboardingChecklist"]] = value;
-        }
-        return accumulator;
-      },
-      {}
-    );
+    const updates = Object.entries(payload.onboardingChecklist).reduce<
+      Partial<DoctorDocument['onboardingChecklist']>
+    >((accumulator, [key, value]) => {
+      if (value !== undefined) {
+        accumulator[key as keyof DoctorDocument['onboardingChecklist']] = value;
+      }
+      return accumulator;
+    }, {});
 
     doctor.onboardingChecklist = {
       ...doctor.onboardingChecklist,
@@ -81,7 +84,9 @@ export const updateDoctorProfile = async (id: string, tenantId: string, payload:
   doctor.lastReviewedAt = new Date();
 
   if (payload.primaryClinicId !== undefined) {
-    doctor.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+    doctor.primaryClinicId = payload.primaryClinicId
+      ? new Types.ObjectId(payload.primaryClinicId)
+      : null;
   }
 
   if (payload.clinicIds !== undefined) {
@@ -92,21 +97,25 @@ export const updateDoctorProfile = async (id: string, tenantId: string, payload:
   return doctor;
 };
 export const getDoctorById = async (id: string, tenantId: string) =>
-  DoctorModel.findOne({ _id: id, tenantId });
+  DoctorModel.findOne({ _id: id, tenantId }).lean();
 
 export const listDoctorSpecialties = async (tenantId: string) => {
-  const specialties = await DoctorModel.distinct("specialization", { tenantId });
+  const specialties = await DoctorModel.distinct('specialization', { tenantId });
   return specialties.sort((a, b) => a.localeCompare(b));
 };
 
 const shouldUpdateApprovedAt = (status: DoctorReviewStatus) =>
-  status === "approved" || status === "active";
+  status === 'approved' || status === 'active';
 
-export const reviewDoctor = async (id: string, tenantId: string, payload: DoctorReviewActionInput) => {
+export const reviewDoctor = async (
+  id: string,
+  tenantId: string,
+  payload: DoctorReviewActionInput,
+) => {
   const doctorExists = await DoctorModel.findOne({ _id: id, tenantId });
 
   if (!doctorExists) {
-    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Doctor not found' });
   }
 
   const setFields: Record<string, unknown> = {
@@ -149,7 +158,11 @@ export const reviewDoctor = async (id: string, tenantId: string, payload: Doctor
   return updatedDoctor;
 };
 
-export const addDoctorReviewNote = async (id: string, tenantId: string, payload: DoctorAddNoteInput) => {
+export const addDoctorReviewNote = async (
+  id: string,
+  tenantId: string,
+  payload: DoctorAddNoteInput,
+) => {
   const doctor = await DoctorModel.findOneAndUpdate(
     { _id: id, tenantId },
     {
@@ -165,11 +178,11 @@ export const addDoctorReviewNote = async (id: string, tenantId: string, payload:
         lastReviewedAt: new Date(),
       },
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   if (!doctor) {
-    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: "Doctor not found" });
+    throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Doctor not found' });
   }
 
   return doctor;
@@ -193,9 +206,9 @@ export const searchDoctors = async (
     page?: number | undefined;
     pageSize?: number | undefined;
     featured?: boolean | undefined;
-    sort?: "rating" | "fee" | "experience" | undefined;
+    sort?: 'rating' | 'fee' | 'experience' | undefined;
   },
-  tenantId: string
+  tenantId: string,
 ) => {
   const filter: FilterQuery<DoctorDocument> = { tenantId };
 
@@ -206,7 +219,7 @@ export const searchDoctors = async (
     filter.specialization = specialization;
   }
   if (city) {
-    filter["clinicLocations.city"] = city;
+    filter['clinicLocations.city'] = city;
   }
   if (consultationMode) {
     filter.consultationModes = consultationMode;
@@ -216,19 +229,19 @@ export const searchDoctors = async (
     filter.totalReviews = { $gte: 50 };
   }
 
-  const sortMap: Record<"rating" | "fee" | "experience", 1 | -1> = {
+  const sortMap: Record<'rating' | 'fee' | 'experience', 1 | -1> = {
     rating: -1,
     fee: 1,
     experience: -1,
   };
 
-  const sortKey = sort ?? "rating";
+  const sortKey = sort ?? 'rating';
   const sortConfig: Record<string, 1 | -1> = {};
 
-  if (sortKey === "experience") {
+  if (sortKey === 'experience') {
     sortConfig.experienceYears = sortMap[sortKey];
     sortConfig.rating = -1;
-  } else if (sortKey === "fee") {
+  } else if (sortKey === 'fee') {
     sortConfig.fee = sortMap[sortKey];
     sortConfig.rating = -1;
   } else {
@@ -248,7 +261,7 @@ export const searchDoctors = async (
   return { items, total };
 };
 
-const defaultSlots = ["09:00", "10:00", "11:00", "14:00", "15:30", "17:00", "19:00"];
+const defaultSlots = ['09:00', '10:00', '11:00', '14:00', '15:30', '17:00', '19:00'];
 
 const startOfDay = (date: Date) => {
   const next = new Date(date);
@@ -275,7 +288,7 @@ type AvailabilityDay = {
 
 export type DoctorAvailability = {
   doctorId: string;
-  modes: DoctorDocument["consultationModes"];
+  modes: DoctorDocument['consultationModes'];
   days: AvailabilityDay[];
   nextAvailableSlot: string | null;
 };
@@ -283,7 +296,7 @@ export type DoctorAvailability = {
 export const getDoctorAvailability = async (
   id: string,
   tenantId: string,
-  params: DoctorAvailabilityParams
+  params: DoctorAvailabilityParams,
 ): Promise<DoctorAvailability | null> => {
   const doctor = await DoctorModel.findOne({ _id: id, tenantId }).lean();
   if (!doctor) {
@@ -298,9 +311,9 @@ export const getDoctorAvailability = async (
     tenantId,
     doctor: id,
     scheduledAt: { $gte: today, $lt: end },
-    status: { $ne: "cancelled" },
+    status: { $ne: 'cancelled' },
   })
-    .select("scheduledAt")
+    .select('scheduledAt')
     .lean();
 
   const bookedSlots = new Set<string>(appointments.map((appt) => appt.scheduledAt.toISOString()));
@@ -313,7 +326,7 @@ export const getDoctorAvailability = async (
     const slots: AvailabilitySlot[] = [];
 
     for (const time of defaultSlots) {
-      const [hours = 0, minutes = 0] = time.split(":").map(Number);
+      const [hours = 0, minutes = 0] = time.split(':').map(Number);
       const slotStart = new Date(slotDate);
       slotStart.setHours(hours, minutes, 0, 0);
       const slotEnd = new Date(slotStart);
@@ -346,4 +359,3 @@ export const getDoctorAvailability = async (
     nextAvailableSlot,
   };
 };
-

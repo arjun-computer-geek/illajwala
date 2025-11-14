@@ -1,29 +1,33 @@
-import { StatusCodes } from "http-status-codes";
-import { Types } from "mongoose";
-import { AppointmentModel } from "./appointment.model";
+import { StatusCodes } from 'http-status-codes';
+import { Types } from 'mongoose';
+import { AppointmentModel } from './appointment.model';
 import type {
   CreateAppointmentInput,
   UpdateAppointmentStatusInput,
   ConfirmAppointmentPaymentInput,
   UpdateAppointmentPaymentInput,
-} from "./appointment.schema";
-import type { AuthenticatedRequest } from "../../middlewares/auth";
-import { AppError } from "../../utils/app-error";
-import { DoctorModel } from "../doctors/doctor.model";
-import { acquireSlotLock, releaseSlotLock } from "./slot-lock.service";
-import { env } from "../../config/env";
-import { createOrder, verifyPaymentSignature, type RazorpayOrderResponse } from "../payments/razorpay.client";
-import type { AppointmentDocument } from "./appointment.model";
-import { publishConsultationEvent } from "../events/consultation-events.publisher";
-import type { ConsultationEventType } from "@illajwala/types";
-import { PatientModel, defaultNotificationPreferences } from "../patients/patient.model";
+} from './appointment.schema';
+import type { AuthenticatedRequest } from '../../middlewares/auth';
+import { AppError } from '../../utils/app-error';
+import { DoctorModel } from '../doctors/doctor.model';
+import { acquireSlotLock, releaseSlotLock } from './slot-lock.service';
+import { env } from '../../config/env';
+import {
+  createOrder,
+  verifyPaymentSignature,
+  type RazorpayOrderResponse,
+} from '../payments/razorpay.client';
+import type { AppointmentDocument } from './appointment.model';
+import { publishConsultationEvent } from '../events/consultation-events.publisher';
+import type { ConsultationEventType } from '@illajwala/types';
+import { PatientModel, defaultNotificationPreferences } from '../patients/patient.model';
 
-type Requester = AuthenticatedRequest["user"];
+type Requester = AuthenticatedRequest['user'];
 
 export const createAppointment = async (
   payload: CreateAppointmentInput,
   requester: Requester | undefined,
-  tenantId: string
+  tenantId: string,
 ): Promise<{
   appointment: AppointmentDocument;
   paymentOrder: null | {
@@ -38,14 +42,14 @@ export const createAppointment = async (
   if (!tenantId) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Tenant context is required to create appointments",
+      message: 'Tenant context is required to create appointments',
     });
   }
 
-  if (requester?.role === "patient" && requester.id !== payload.patientId) {
+  if (requester?.role === 'patient' && requester.id !== payload.patientId) {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
-      message: "You can only book appointments for your own profile",
+      message: 'You can only book appointments for your own profile',
     });
   }
 
@@ -53,24 +57,24 @@ export const createAppointment = async (
   if (Number.isNaN(scheduledAt.getTime())) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Invalid scheduled date",
+      message: 'Invalid scheduled date',
     });
   }
 
   if (scheduledAt.getTime() <= Date.now()) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Cannot book slots in the past",
+      message: 'Cannot book slots in the past',
     });
   }
 
   const doctor = await DoctorModel.findOne({ _id: payload.doctorId, tenantId }).select(
-    "fee consultationModes name specialization primaryClinicId clinicIds"
+    'fee consultationModes name specialization primaryClinicId clinicIds',
   );
   if (!doctor) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Doctor not found",
+      message: 'Doctor not found',
     });
   }
 
@@ -78,7 +82,7 @@ export const createAppointment = async (
   if (!patientExists) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Patient not found",
+      message: 'Patient not found',
     });
   }
 
@@ -91,16 +95,25 @@ export const createAppointment = async (
 
   // Resolve clinicId early for slot locking
   const clinicId =
-    (payload.clinicId && Types.ObjectId.isValid(payload.clinicId) ? new Types.ObjectId(payload.clinicId) : null) ??
-    (doctor.primaryClinicId ?? null);
+    (payload.clinicId && Types.ObjectId.isValid(payload.clinicId)
+      ? new Types.ObjectId(payload.clinicId)
+      : null) ??
+    doctor.primaryClinicId ??
+    null;
 
   const expiresInSeconds = env.APPOINTMENT_PAYMENT_TIMEOUT_MINUTES * 60;
-  const lockAcquired = await acquireSlotLock(tenantId, payload.doctorId, scheduledAt, expiresInSeconds, clinicId);
+  const lockAcquired = await acquireSlotLock(
+    tenantId,
+    payload.doctorId,
+    scheduledAt,
+    expiresInSeconds,
+    clinicId,
+  );
 
   if (!lockAcquired) {
     throw AppError.from({
       statusCode: StatusCodes.CONFLICT,
-      message: "Selected slot is no longer available. Please choose a different time.",
+      message: 'Selected slot is no longer available. Please choose a different time.',
     });
   }
 
@@ -109,33 +122,31 @@ export const createAppointment = async (
       tenantId,
       doctor: payload.doctorId,
       scheduledAt,
-      status: { $ne: "cancelled" },
+      status: { $ne: 'cancelled' },
     });
 
     if (conflictingAppointment) {
       throw AppError.from({
         statusCode: StatusCodes.CONFLICT,
-        message: "Another appointment already exists for this slot.",
+        message: 'Another appointment already exists for this slot.',
       });
     }
 
-    const amountInRupees = typeof doctor.fee === "number" && doctor.fee > 0 ? doctor.fee : 0;
+    const amountInRupees = typeof doctor.fee === 'number' && doctor.fee > 0 ? doctor.fee : 0;
     const amountInMinorUnits = Math.round(amountInRupees * 100);
     const requiresPayment = amountInMinorUnits > 0;
 
-    let paymentPayload:
-      | null
-      | {
-          orderId: string;
-          amount: number;
-          currency: string;
-          keyId: string;
-          receipt?: string;
-          intentExpiresAt?: Date;
-        } = null;
+    let paymentPayload: null | {
+      orderId: string;
+      amount: number;
+      currency: string;
+      keyId: string;
+      receipt?: string;
+      intentExpiresAt?: Date;
+    } = null;
 
-    let paymentData: AppointmentDocument["payment"] | undefined;
-    let status: AppointmentDocument["status"] = requiresPayment ? "pending-payment" : "confirmed";
+    let paymentData: AppointmentDocument['payment'] | undefined;
+    const status: AppointmentDocument['status'] = requiresPayment ? 'pending-payment' : 'confirmed';
 
     if (requiresPayment) {
       const receipt = `appt_${payload.patientId}_${Date.now()}`;
@@ -153,13 +164,13 @@ export const createAppointment = async (
       const intentExpiresAt = new Date(Date.now() + expiresInSeconds * 1000);
       paymentData = {
         orderId: order.id,
-        status: "pending",
+        status: 'pending',
         amount: order.amount,
         currency: order.currency,
         receipt: order.receipt ?? receipt,
         history: [
           {
-            type: "order-created",
+            type: 'order-created',
             payload: order,
             createdAt: new Date(),
           },
@@ -189,11 +200,15 @@ export const createAppointment = async (
       payment: paymentData,
     });
 
-  await appointment.populate([
-    { path: "patient", select: "name email phone primaryClinicId" },
-    { path: "doctor", select: "name specialization consultationModes fee clinicLocations primaryClinicId clinicIds" },
-    { path: "clinic", select: "name slug timezone" },
-  ]);
+    await appointment.populate([
+      { path: 'patient', select: 'name email phone primaryClinicId' },
+      {
+        path: 'doctor',
+        select:
+          'name specialization consultationModes fee clinicLocations primaryClinicId clinicIds',
+      },
+      { path: 'clinic', select: 'name slug timezone' },
+    ]);
 
     return {
       appointment,
@@ -231,20 +246,21 @@ export const listAppointments = async ({
   if (status) {
     filter.status = status;
   }
-  if (requester?.role === "patient") {
+  if (requester?.role === 'patient') {
     filter.patient = requester.id;
   }
-  if (requester?.role === "doctor") {
+  if (requester?.role === 'doctor') {
     filter.doctor = requester.id;
   }
 
   const [items, total] = await Promise.all([
     AppointmentModel.find(filter)
-      .populate("patient", "name email phone")
-      .populate("doctor", "name specialization consultationModes fee clinicLocations")
+      .populate('patient', 'name email phone')
+      .populate('doctor', 'name specialization consultationModes fee clinicLocations')
       .sort({ scheduledAt: 1 })
       .skip((page - 1) * pageSize)
-      .limit(pageSize),
+      .limit(pageSize)
+      .lean(),
     AppointmentModel.countDocuments(filter),
   ]);
 
@@ -255,12 +271,12 @@ export const updateAppointmentStatus = async (
   id: string,
   payload: UpdateAppointmentStatusInput,
   requester: Requester | undefined,
-  tenantId: string
+  tenantId: string,
 ) => {
-  if (requester?.role === "patient") {
+  if (requester?.role === 'patient') {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
-      message: "Patients cannot modify appointment status",
+      message: 'Patients cannot modify appointment status',
     });
   }
 
@@ -269,7 +285,7 @@ export const updateAppointmentStatus = async (
   if (!appointment) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Appointment not found",
+      message: 'Appointment not found',
     });
   }
 
@@ -322,7 +338,7 @@ export const updateAppointmentStatus = async (
   }
 
   const now = new Date();
-  if (payload.status === "checked-in" || payload.status === "in-session") {
+  if (payload.status === 'checked-in' || payload.status === 'in-session') {
     const consultation = ensureConsultation();
     // Starting or resuming a session marks the start timestamp when absent so
     // we can display elapsed time in the doctor workspace.
@@ -330,7 +346,7 @@ export const updateAppointmentStatus = async (
       consultation.startedAt = now;
     }
   }
-  if (payload.status === "completed") {
+  if (payload.status === 'completed') {
     const consultation = ensureConsultation();
     // Completion ensures both `startedAt` and `endedAt` are set to avoid null
     // comparisons on the frontend timeline.
@@ -341,7 +357,7 @@ export const updateAppointmentStatus = async (
       consultation.endedAt = now;
     }
   }
-  if (payload.status === "no-show") {
+  if (payload.status === 'no-show') {
     const consultation = ensureConsultation();
     if (!consultation.endedAt) {
       consultation.endedAt = now;
@@ -361,8 +377,8 @@ export const updateAppointmentStatus = async (
 
   await appointment.save();
   await appointment.populate([
-    { path: "patient", select: "name email phone" },
-    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+    { path: 'patient', select: 'name email phone' },
+    { path: 'doctor', select: 'name specialization consultationModes fee clinicLocations' },
   ]);
 
   await maybePublishConsultationEvent({
@@ -373,11 +389,11 @@ export const updateAppointmentStatus = async (
   return appointment;
 };
 
-const statusToEventMap: Partial<Record<AppointmentDocument["status"], ConsultationEventType>> = {
-  "checked-in": "consultation.checked-in",
-  "in-session": "consultation.in-session",
-  completed: "consultation.completed",
-  "no-show": "consultation.no-show",
+const statusToEventMap: Partial<Record<AppointmentDocument['status'], ConsultationEventType>> = {
+  'checked-in': 'consultation.checked-in',
+  'in-session': 'consultation.in-session',
+  completed: 'consultation.completed',
+  'no-show': 'consultation.no-show',
 };
 
 const maybePublishConsultationEvent = async ({
@@ -385,7 +401,7 @@ const maybePublishConsultationEvent = async ({
   previousStatus,
 }: {
   appointment: AppointmentDocument;
-  previousStatus: AppointmentDocument["status"];
+  previousStatus: AppointmentDocument['status'];
 }) => {
   const eventType = statusToEventMap[appointment.status];
   if (!eventType || previousStatus === appointment.status) {
@@ -393,15 +409,24 @@ const maybePublishConsultationEvent = async ({
   }
 
   const doctor = appointment.doctor as unknown as { _id: string; name?: string };
-  const patient = appointment.patient as unknown as { _id: string; name?: string; email?: string; phone?: string };
+  const patient = appointment.patient as unknown as {
+    _id: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
   const patientId = patient?._id?.toString() ?? String(appointment.patient);
 
-  const patientRecord = await PatientModel.findOne({ _id: patientId, tenantId: appointment.tenantId })
-    .select("phone notificationPreferences")
+  const patientRecord = await PatientModel.findOne({
+    _id: patientId,
+    tenantId: appointment.tenantId,
+  })
+    .select('phone notificationPreferences')
     .lean();
 
   const patientPhone = patient?.phone ?? patientRecord?.phone ?? undefined;
-  const notificationPreferences = patientRecord?.notificationPreferences ?? defaultNotificationPreferences;
+  const notificationPreferences =
+    patientRecord?.notificationPreferences ?? defaultNotificationPreferences;
 
   const payload = {
     type: eventType,
@@ -418,7 +443,8 @@ const maybePublishConsultationEvent = async ({
   };
 
   const metadata =
-    appointment.consultation && (appointment.consultation.followUpActions || appointment.consultation.notes)
+    appointment.consultation &&
+    (appointment.consultation.followUpActions || appointment.consultation.notes)
       ? {
           followUpActions: appointment.consultation.followUpActions,
           notes: appointment.consultation.notes,
@@ -435,42 +461,42 @@ export const confirmAppointmentPayment = async (
   id: string,
   payload: ConfirmAppointmentPaymentInput,
   requester: Requester | undefined,
-  tenantId: string
+  tenantId: string,
 ) => {
   const appointment = await AppointmentModel.findOne({ _id: id, tenantId });
 
   if (!appointment) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Appointment not found",
+      message: 'Appointment not found',
     });
   }
 
-  if (requester?.role === "patient" && appointment.patient.toString() !== requester.id) {
+  if (requester?.role === 'patient' && appointment.patient.toString() !== requester.id) {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
-      message: "You can only confirm payments for your own appointments",
+      message: 'You can only confirm payments for your own appointments',
     });
   }
 
   if (!appointment.payment) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "This appointment does not require a payment",
+      message: 'This appointment does not require a payment',
     });
   }
 
   if (appointment.payment.orderId !== payload.orderId) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Order mismatch for this appointment",
+      message: 'Order mismatch for this appointment',
     });
   }
 
-  if (appointment.payment.status === "captured" && appointment.status === "confirmed") {
+  if (appointment.payment.status === 'captured' && appointment.status === 'confirmed') {
     await appointment.populate([
-      { path: "patient", select: "name email phone" },
-      { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+      { path: 'patient', select: 'name email phone' },
+      { path: 'doctor', select: 'name specialization consultationModes fee clinicLocations' },
     ]);
     return appointment;
   }
@@ -484,31 +510,31 @@ export const confirmAppointmentPayment = async (
   if (!isValidSignature) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Invalid payment signature",
+      message: 'Invalid payment signature',
     });
   }
 
   const now = new Date();
 
-  appointment.payment.status = "captured";
+  appointment.payment.status = 'captured';
   appointment.payment.paymentId = payload.paymentId;
   appointment.payment.signature = payload.signature;
   appointment.payment.capturedAt = now;
   appointment.payment.history = [
     ...(appointment.payment.history ?? []),
     {
-      type: "payment-captured",
+      type: 'payment-captured',
       payload,
       createdAt: now,
     },
   ];
 
-  appointment.status = "confirmed";
+  appointment.status = 'confirmed';
 
   await appointment.save();
   await appointment.populate([
-    { path: "patient", select: "name email phone" },
-    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+    { path: 'patient', select: 'name email phone' },
+    { path: 'doctor', select: 'name specialization consultationModes fee clinicLocations' },
   ]);
 
   return appointment;
@@ -518,12 +544,12 @@ export const updateAppointmentPayment = async (
   id: string,
   payload: UpdateAppointmentPaymentInput,
   requester: Requester | undefined,
-  tenantId: string
+  tenantId: string,
 ) => {
-  if (requester?.role !== "admin") {
+  if (requester?.role !== 'admin') {
     throw AppError.from({
       statusCode: StatusCodes.FORBIDDEN,
-      message: "Only admins can override payment status",
+      message: 'Only admins can override payment status',
     });
   }
 
@@ -532,7 +558,7 @@ export const updateAppointmentPayment = async (
   if (!appointment || !appointment.payment) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Appointment payment not found",
+      message: 'Appointment payment not found',
     });
   }
 
@@ -543,20 +569,20 @@ export const updateAppointmentPayment = async (
     appointment.payment.paymentId = payload.paymentId;
   }
 
-  if (payload.status === "captured") {
+  if (payload.status === 'captured') {
     appointment.payment.capturedAt = now;
-    appointment.status = "confirmed";
-  } else if (payload.status === "failed") {
+    appointment.status = 'confirmed';
+  } else if (payload.status === 'failed') {
     appointment.payment.failedAt = now;
     if (payload.notes) {
-      appointment.notes = [appointment.notes, payload.notes].filter(Boolean).join("\n");
+      appointment.notes = [appointment.notes, payload.notes].filter(Boolean).join('\n');
     }
   }
 
   appointment.payment.history = [
     ...(appointment.payment.history ?? []),
     {
-      type: "manual-update",
+      type: 'manual-update',
       payload: {
         status: payload.status,
         paymentId: payload.paymentId,
@@ -569,10 +595,9 @@ export const updateAppointmentPayment = async (
 
   await appointment.save();
   await appointment.populate([
-    { path: "patient", select: "name email phone" },
-    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+    { path: 'patient', select: 'name email phone' },
+    { path: 'doctor', select: 'name specialization consultationModes fee clinicLocations' },
   ]);
 
   return appointment;
 };
-

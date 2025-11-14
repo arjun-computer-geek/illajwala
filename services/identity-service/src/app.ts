@@ -3,10 +3,13 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { clientOrigins, env, isProd } from './config/env';
+import compression from 'compression';
+import { clientOrigins, isProd } from './config/env';
 import { rootRouter } from './modules/routes';
 import { notFoundHandler } from './middlewares/not-found';
 import { errorHandler } from './middlewares/error-handler';
+import { sanitizeInput } from './middlewares/sanitize-input';
+import { requestLogger } from './middlewares/request-logger';
 import { metricsHandler } from './metrics';
 
 const app: Application = express();
@@ -22,7 +25,34 @@ app.use(
     credentials: true,
   }),
 );
-app.use(helmet());
+// Enhanced Helmet configuration for security headers
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Disable for API compatibility
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  }),
+);
+app.use(compression());
 app.use(morgan(isProd ? 'combined' : 'dev'));
 app.use(
   express.json({
@@ -34,8 +64,11 @@ app.use(
     },
   }),
 );
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
+
+// Request logging (before routes to capture all requests)
+app.use(requestLogger);
 
 app.get('/health', async (_req, res) => {
   const health = {
@@ -70,8 +103,49 @@ app.get('/health', async (_req, res) => {
   res.status(allHealthy ? 200 : 503).json(health);
 });
 
+// Readiness probe - checks if service is ready to accept traffic
+app.get('/health/ready', async (_req, res) => {
+  const checks = {
+    database: false,
+    redis: false,
+  };
+
+  try {
+    const mongoose = await import('mongoose');
+    checks.database = mongoose.connection.readyState === 1;
+  } catch {
+    checks.database = false;
+  }
+
+  try {
+    const { redis } = await import('./config/redis');
+    await redis.ping();
+    checks.redis = redis.status === 'ready';
+  } catch {
+    checks.redis = false;
+  }
+
+  const isReady = checks.database && checks.redis;
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? 'ready' : 'not ready',
+    checks,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Liveness probe - checks if service is alive
+app.get('/health/live', (_req, res) => {
+  res.status(200).json({
+    status: 'alive',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 app.get('/metrics', metricsHandler);
 
+// Apply input sanitization to API routes only (skip health/metrics)
+app.use('/api', sanitizeInput);
 app.use('/api', rootRouter);
 
 app.use(notFoundHandler);

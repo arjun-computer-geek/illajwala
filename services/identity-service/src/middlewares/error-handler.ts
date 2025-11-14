@@ -1,27 +1,51 @@
-import type { NextFunction, Request, Response } from "express";
-import { StatusCodes } from "http-status-codes";
-import { AppError } from "../utils/app-error";
+import type { NextFunction, Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import { AppError } from '../utils/app-error';
+import { logger } from '../utils/logger';
+import { isProd } from '../config/env';
 
-export const errorHandler = (
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
+export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction) => {
   const isAppError = err instanceof AppError;
   const statusCode = isAppError ? err.statusCode : StatusCodes.INTERNAL_SERVER_ERROR;
-  const message = err.message || "Something went wrong";
-  const response = {
+
+  // Prevent information leakage in production
+  // In production, don't expose internal error messages
+  const message =
+    isProd && !isAppError ? 'An internal error occurred' : err.message || 'Something went wrong';
+
+  const response: {
+    success: false;
+    error: {
+      message: string;
+      code?: string;
+      details?: unknown;
+    };
+  } = {
+    success: false,
     error: {
       message,
       ...(isAppError && err.details ? { details: err.details } : {}),
     },
   };
 
-  if (process.env.NODE_ENV !== "production") {
-    console.error(err);
+  // Log errors with context (skip in test environment)
+  if (process.env.NODE_ENV !== 'test') {
+    const errorContext = {
+      statusCode,
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    };
+
+    if (statusCode >= 500) {
+      // Server errors - log with full context
+      logger.error(`Server error: ${err.message}`, err, errorContext);
+    } else if (statusCode >= 400) {
+      // Client errors - log with context (less verbose)
+      logger.warn(`Client error: ${err.message}`, errorContext);
+    }
   }
 
   res.status(statusCode).json(response);
 };
-

@@ -2,7 +2,7 @@
 
 This document describes the REST API endpoints for the Illajwala platform.
 
-**Last Updated**: Sprint 6 - Includes waitlist analytics, bulk operations, and priority management.
+**Last Updated**: Sprint 7 - Includes SLA analytics, clinic metrics, enhanced security, and rate limiting.
 
 ## Base URL
 
@@ -472,15 +472,142 @@ Content-Type: application/json
 }
 ```
 
-#### Get Analytics
+### Analytics
+
+#### Get Operations Pulse
 
 ```http
-GET /api/admin/analytics
+GET /api/analytics/ops/pulse
+Authorization: Bearer <admin_token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "activeConsultations": 12,
+    "waitingPatients": 5,
+    "averageWaitTime": 15,
+    "noShowRate": 8,
+    "revenueToday": 45000,
+    "clinicsActive": 3,
+    "clinicsPending": 1,
+    "alertsOpen": 2
+  }
+}
+```
+
+#### Get Operations Series
+
+```http
+GET /api/analytics/ops/series
+Authorization: Bearer <admin_token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "consultations": [
+      {
+        "label": "Consultations",
+        "color": "#2563eb",
+        "points": [
+          { "date": "2025-01-01", "value": 25 },
+          { "date": "2025-01-02", "value": 30 }
+        ]
+      }
+    ],
+    "revenue": [
+      {
+        "label": "Revenue",
+        "color": "#22c55e",
+        "points": [
+          { "date": "2025-01-01", "value": 50000 },
+          { "date": "2025-01-02", "value": 60000 }
+        ]
+      }
+    ],
+    "noShow": [
+      {
+        "label": "No-show rate",
+        "color": "#f97316",
+        "points": [
+          { "date": "2025-01-01", "value": 5 },
+          { "date": "2025-01-02", "value": 8 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### Get SLA Metrics
+
+```http
+GET /api/analytics/sla
+Authorization: Bearer <admin_token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "verificationSLA": {
+      "average": 36,
+      "target": 48,
+      "met": 95.2
+    },
+    "incidentResolution": {
+      "average": 2.5,
+      "target": 4,
+      "met": 98.1
+    },
+    "payoutProcessing": {
+      "average": 24,
+      "target": 48,
+      "met": 99.4
+    },
+    "clinicActivation": {
+      "average": 5,
+      "target": 7,
+      "met": 92.8
+    }
+  }
+}
+```
+
+#### Get Clinic Metrics
+
+```http
+GET /api/analytics/clinics/metrics?clinicId=clinic_id
 Authorization: Bearer <admin_token>
 Query Parameters:
-  - startDate: ISO date string
-  - endDate: ISO date string
-  - clinicId: string (optional)
+  - clinicId: string (optional) - Filter by specific clinic
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "clinicId": "clinic_id",
+      "clinicName": "Skin Renewal Clinic",
+      "activeDoctors": 8,
+      "appointmentsToday": 24,
+      "revenueToday": 48000,
+      "status": "active"
+    }
+  ]
+}
 ```
 
 ## Real-time Updates
@@ -568,10 +695,12 @@ Authorization: Bearer <token>
 
 ## Rate Limiting
 
-- **General endpoints:** 100 requests per minute
-- **Authentication endpoints:** 10 requests per minute
-- **Search endpoints:** 50 requests per minute
-- **Real-time endpoints:** 5 connections per user
+The API implements rate limiting to prevent abuse and ensure fair usage:
+
+- **General API endpoints**: 100 requests per minute per IP
+- **Login endpoints**: 5 attempts per 15 minutes per IP (only failed attempts counted)
+- **Payment endpoints**: 10 requests per minute per IP
+- **Registration endpoints**: 60 requests per minute per IP
 
 Rate limit headers are included in responses:
 
@@ -587,14 +716,13 @@ When rate limit is exceeded:
 {
   "success": false,
   "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests. Please try again later.",
-    "details": {
-      "retryAfter": 60
-    }
+    "message": "Rate limit exceeded. Try again in 60 seconds.",
+    "code": "RATE_LIMIT_EXCEEDED"
   }
 }
 ```
+
+The API returns a `429 Too Many Requests` status with a `Retry-After` header indicating when to retry.
 
 ## Pagination
 
@@ -660,22 +788,77 @@ POST /api/payments/webhook
 
 The webhook includes Razorpay signature verification.
 
-## Health Check
+## Health Checks
+
+### General Health Check
 
 ```http
-GET /api/health
+GET /health
 ```
 
 **Response:**
 
 ```json
 {
-  "status": "healthy",
+  "status": "ok",
   "timestamp": "2024-01-15T10:00:00Z",
+  "uptime": 3600.5,
   "services": {
     "database": "connected",
     "redis": "connected"
   }
+}
+```
+
+### Readiness Probe
+
+```http
+GET /health/ready
+```
+
+Checks if the service is ready to accept traffic. Returns `200` if all dependencies are healthy, `503` otherwise.
+
+**Response (Ready):**
+
+```json
+{
+  "status": "ready",
+  "checks": {
+    "database": true,
+    "redis": true
+  },
+  "timestamp": "2024-01-15T10:00:00Z"
+}
+```
+
+**Response (Not Ready):**
+
+```json
+{
+  "status": "not ready",
+  "checks": {
+    "database": false,
+    "redis": true
+  },
+  "timestamp": "2024-01-15T10:00:00Z"
+}
+```
+
+### Liveness Probe
+
+```http
+GET /health/live
+```
+
+Checks if the service process is alive. Always returns `200` if the service is running.
+
+**Response:**
+
+```json
+{
+  "status": "alive",
+  "timestamp": "2024-01-15T10:00:00Z",
+  "uptime": 3600.5
 }
 ```
 
@@ -686,3 +869,67 @@ GET /api/metrics
 ```
 
 Returns Prometheus-compatible metrics.
+
+## Security
+
+The API implements multiple security measures to protect against common vulnerabilities:
+
+### Authentication & Authorization
+
+- JWT-based authentication with access and refresh tokens
+- Role-based access control (RBAC) for patients, doctors, and admins
+- Token expiration and refresh mechanism
+- Secure password hashing using bcrypt
+
+### Input Validation & Sanitization
+
+- **Zod Schema Validation**: All request bodies, query parameters, and route parameters are validated using Zod schemas
+- **Input Sanitization**: Automatic sanitization of user inputs to prevent XSS and injection attacks
+- **MongoDB ObjectId Validation**: Route parameters containing IDs are validated to prevent NoSQL injection
+- **Request Size Limits**: JSON and URL-encoded request bodies are limited to 1MB
+
+### Security Headers
+
+The API uses Helmet.js to set security headers:
+
+- **Content Security Policy (CSP)**: Restricts resource loading to prevent XSS
+- **HSTS (HTTP Strict Transport Security)**: Enforces HTTPS connections
+- **XSS Protection**: Browser-level XSS filtering
+- **No Sniff**: Prevents MIME type sniffing
+- **Referrer Policy**: Controls referrer information disclosure
+
+### Rate Limiting
+
+Rate limiting is enforced at multiple levels:
+
+- General API endpoints: 100 requests/minute per IP
+- Login endpoints: 5 attempts per 15 minutes per IP (only failed attempts counted)
+- Payment endpoints: 10 requests/minute per IP
+- Registration endpoints: 60 requests/minute per IP
+
+### Error Handling
+
+- Error messages in production don't leak sensitive information
+- Structured error logging with context (path, method, IP, user agent)
+- Different log levels for client errors (warn) and server errors (error)
+
+### CORS Protection
+
+- CORS is configured to only allow requests from trusted origins
+- Credentials are required for cross-origin requests
+- Origin validation on all API requests
+
+### Data Protection
+
+- Sensitive fields (passwords, tokens, secrets) are excluded from input sanitization
+- Passwords are never logged or returned in responses
+- JWT secrets are stored securely and never exposed
+
+### Best Practices
+
+1. **Always use HTTPS** in production
+2. **Store secrets securely** using environment variables
+3. **Rotate JWT secrets** regularly
+4. **Monitor rate limit violations** for potential abuse
+5. **Review error logs** regularly for security issues
+6. **Keep dependencies updated** to patch security vulnerabilities

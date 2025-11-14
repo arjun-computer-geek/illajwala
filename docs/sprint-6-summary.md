@@ -184,6 +184,12 @@ All planned development tasks for Sprint 6 have been completed:
 3. **Deployment**: Prepare for production deployment
 4. **Sprint 7 Planning**: Begin planning next sprint priorities
 
+## Related Documents
+
+- [Current Status](./STATUS.md) - Single source of truth for platform status
+- [Architecture Overview](./ARCHITECTURE.md)
+- [API Documentation](./API.md)
+
 ## Notes
 
 - All builds passing ✅

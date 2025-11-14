@@ -18,52 +18,9 @@ import {
 import { Building2, Users, Calendar, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { adminClinicsApi } from '@/lib/api/clinics';
+import { adminAnalyticsApi } from '@/lib/api/analytics';
 import { adminQueryKeys } from '@/lib/query-keys';
-
-type ClinicMetrics = {
-  clinicId: string;
-  clinicName: string;
-  activeDoctors: number;
-  appointmentsToday: number;
-  revenueToday: number;
-  status: 'active' | 'pending' | 'suspended';
-};
-
-// Mock data - replace with real API call
-const mockClinicMetrics: ClinicMetrics[] = [
-  {
-    clinicId: '1',
-    clinicName: 'Skin Renewal Clinic',
-    activeDoctors: 8,
-    appointmentsToday: 24,
-    revenueToday: 48000,
-    status: 'active',
-  },
-  {
-    clinicId: '2',
-    clinicName: 'Mumbai Dermatology',
-    activeDoctors: 12,
-    appointmentsToday: 42,
-    revenueToday: 84000,
-    status: 'active',
-  },
-  {
-    clinicId: '3',
-    clinicName: 'Delhi Wellness Center',
-    activeDoctors: 5,
-    appointmentsToday: 18,
-    revenueToday: 36000,
-    status: 'active',
-  },
-  {
-    clinicId: '4',
-    clinicName: 'Bangalore Health Hub',
-    activeDoctors: 0,
-    appointmentsToday: 0,
-    revenueToday: 0,
-    status: 'pending',
-  },
-];
+import type { ClinicMetrics } from '@illajwala/types';
 
 export const MultiClinicView = () => {
   const [selectedClinic, setSelectedClinic] = useState<string>('all');
@@ -74,13 +31,10 @@ export const MultiClinicView = () => {
     staleTime: 5 * 60_000,
   });
 
-  // TODO: Replace with real API call
   const { data: clinicMetrics, isLoading: metricsLoading } = useQuery({
-    queryKey: [...adminQueryKeys.clinics(), 'metrics'],
-    queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return mockClinicMetrics;
-    },
+    queryKey: [...adminQueryKeys.clinics(), 'metrics', selectedClinic],
+    queryFn: () =>
+      adminAnalyticsApi.getClinicMetrics(selectedClinic === 'all' ? undefined : selectedClinic),
     staleTime: 2 * 60_000,
   });
 
