@@ -1,14 +1,12 @@
-import { Queue, Worker } from "bullmq";
-import IORedis from "ioredis";
-import pino from "pino";
-import type { ConsultationEvent } from "../types/consultation-event";
-import { env } from "../../config/env";
-import { registerConsultationWorker } from "../workers/consultation.worker";
-import { registerNotificationResendWorker } from "../workers/notification-resend.worker";
-import type { NotificationChannel } from "@illajwala/types";
-import type { WaitlistEvent } from "../types/waitlist-event";
-import { registerWaitlistWorker } from "../workers/waitlist.worker";
-import { recordQueueDepth } from "../metrics";
+import { Queue, Worker } from 'bullmq';
+import IORedis from 'ioredis';
+import pino from 'pino';
+import type { ConsultationEvent } from '../types/consultation-event';
+import { env } from '../../config/env';
+import { registerNotificationResendWorker } from '../workers/notification-resend.worker';
+import type { NotificationChannel } from '@illajwala/types';
+import type { WaitlistEvent } from '../types/waitlist-event';
+import { recordQueueDepth } from '../metrics';
 
 /**
  * Queue manager centralises Redis connections for producers & consumers so that
@@ -19,13 +17,13 @@ export const createQueueManager = () => {
   const connection = new IORedis(env.REDIS_URL);
   const logger = pino({
     name: env.SERVICE_NAME,
-    transport: env.NODE_ENV === "development" ? { target: "pino-pretty" } : undefined,
+    transport: env.NODE_ENV === 'development' ? { target: 'pino-pretty' } : undefined,
   });
 
-  const consultationQueue = new Queue<ConsultationEvent>("consultation-events", {
+  const consultationQueue = new Queue<ConsultationEvent>('consultation-events', {
     connection,
   });
-  const consultationDeadLetterQueue = new Queue<ConsultationEvent>("consultation-events-dlq", {
+  const consultationDeadLetterQueue = new Queue<ConsultationEvent>('consultation-events-dlq', {
     connection,
   });
   const notificationResendQueue = new Queue<{
@@ -34,37 +32,23 @@ export const createQueueManager = () => {
     channel: NotificationChannel;
     payload: string;
     reason?: string | null;
-  }>("notification-resend", {
+  }>('notification-resend', {
     connection,
   });
-  const waitlistQueue = new Queue<WaitlistEvent>("waitlist-events", {
+  const waitlistQueue = new Queue<WaitlistEvent>('waitlist-events', {
     connection,
   });
 
   // Register workers lazily; this lets future modules plug in additional
   // handlers (email, SMS, WhatsApp) without refactoring the bootstrap.
+  // Note: consultation and waitlist workers use NATS event bus, not BullMQ queues.
   const workers: Worker<any>[] = [];
-  workers.push(
-    registerConsultationWorker({
-      connection,
-      logger,
-      queue: consultationQueue,
-      deadLetterQueue: consultationDeadLetterQueue,
-    })
-  );
   workers.push(
     registerNotificationResendWorker({
       connection,
       logger,
       queue: notificationResendQueue,
-    })
-  );
-  workers.push(
-    registerWaitlistWorker({
-      connection,
-      logger,
-      queue: waitlistQueue,
-    })
+    }),
   );
 
   const queueApi = consultationQueue as unknown as {
@@ -78,11 +62,11 @@ export const createQueueManager = () => {
 
   const refreshQueueDepth = async () => {
     try {
-      const counts = await queueApi.getJobCounts("waiting", "delayed", "active");
+      const counts = await queueApi.getJobCounts('waiting', 'delayed', 'active');
       const depth = (counts.waiting ?? 0) + (counts.delayed ?? 0) + (counts.active ?? 0);
       recordQueueDepth(depth);
     } catch (error) {
-      logger.warn({ error }, "Unable to refresh consultation queue metrics");
+      logger.warn({ error }, 'Unable to refresh consultation queue metrics');
     }
   };
 
@@ -100,7 +84,9 @@ export const createQueueManager = () => {
     workers,
     shutdown: async () => {
       clearInterval(metricsInterval);
-      await Promise.all(workers.map((worker) => (worker as unknown as { close: () => Promise<void> }).close()));
+      await Promise.all(
+        workers.map((worker) => (worker as unknown as { close: () => Promise<void> }).close()),
+      );
       await queueApi.close();
       await dlqApi.close();
       await resendQueueApi.close();
@@ -109,5 +95,3 @@ export const createQueueManager = () => {
     },
   };
 };
-
-

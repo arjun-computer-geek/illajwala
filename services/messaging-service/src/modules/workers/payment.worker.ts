@@ -1,6 +1,5 @@
 import type { Logger } from 'pino';
-import type { PaymentEvent } from '@illajwala/types';
-import { createEventSubscriber } from '@illajwala/event-bus';
+import { createEventSubscriber, type PaymentEvent } from '@illajwala/event-bus';
 
 type RegisterPaymentWorkerOptions = {
   logger: Logger;

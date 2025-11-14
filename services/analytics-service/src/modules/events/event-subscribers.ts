@@ -1,6 +1,10 @@
 import { createLogger } from '@illajwala/shared';
-import { createEventSubscriber } from '@illajwala/event-bus';
-import type { ConsultationEvent, PaymentEvent, AppointmentEvent } from '@illajwala/types';
+import {
+  createEventSubscriber,
+  type PaymentEvent,
+  type AppointmentEvent,
+} from '@illajwala/event-bus';
+import type { ConsultationEvent } from '@illajwala/types';
 import { AppointmentModel } from '../../models/appointment.model';
 import { DoctorModel } from '../../models/doctor.model';
 import { PatientModel } from '../../models/patient.model';
@@ -29,19 +33,20 @@ export const registerConsultationEventSubscriber = async () => {
   for (const eventType of consultationEventTypes) {
     await subscriber.subscribe<ConsultationEvent>(eventType, async (event) => {
       try {
-        logger.info(
-          { eventType: event.type, appointmentId: event.appointmentId },
-          'Received consultation event',
-        );
+        logger.info('Received consultation event', {
+          eventType: event.type,
+          appointmentId: event.appointmentId,
+        });
 
         // TODO: Update analytics based on consultation events
         // This could update metrics, generate reports, etc.
-        logger.debug({ eventType: event.type }, 'Consultation event processed for analytics');
+        logger.debug('Consultation event processed for analytics', {
+          eventType: event.type,
+        });
       } catch (error) {
-        logger.error(
-          { eventType: event.type, error },
-          'Failed to process consultation event for analytics',
-        );
+        logger.error('Failed to process consultation event for analytics', error as Error, {
+          eventType: event.type,
+        });
       }
     });
   }
@@ -78,16 +83,20 @@ export const registerPaymentEventSubscriber = async () => {
   for (const eventType of paymentEventTypes) {
     await subscriber.subscribe<PaymentEvent>(eventType, async (event) => {
       try {
-        logger.info({ eventType: event.type, orderId: event.orderId }, 'Received payment event');
+        logger.info('Received payment event', {
+          eventType: event.type,
+          orderId: event.orderId,
+        });
 
         // TODO: Update analytics based on payment events
         // This could update revenue metrics, payment success rates, etc.
-        logger.debug({ eventType: event.type }, 'Payment event processed for analytics');
+        logger.debug('Payment event processed for analytics', {
+          eventType: event.type,
+        });
       } catch (error) {
-        logger.error(
-          { eventType: event.type, error },
-          'Failed to process payment event for analytics',
-        );
+        logger.error('Failed to process payment event for analytics', error as Error, {
+          eventType: event.type,
+        });
       }
     });
   }
@@ -125,19 +134,20 @@ export const registerAppointmentEventSubscriber = async () => {
   for (const eventType of appointmentEventTypes) {
     await subscriber.subscribe<AppointmentEvent>(eventType, async (event) => {
       try {
-        logger.info(
-          { eventType: event.type, appointmentId: event.appointmentId },
-          'Received appointment event',
-        );
+        logger.info('Received appointment event', {
+          eventType: event.type,
+          appointmentId: event.appointmentId,
+        });
 
         // TODO: Update analytics based on appointment events
         // This could update appointment metrics, booking trends, etc.
-        logger.debug({ eventType: event.type }, 'Appointment event processed for analytics');
+        logger.debug('Appointment event processed for analytics', {
+          eventType: event.type,
+        });
       } catch (error) {
-        logger.error(
-          { eventType: event.type, error },
-          'Failed to process appointment event for analytics',
-        );
+        logger.error('Failed to process appointment event for analytics', error as Error, {
+          eventType: event.type,
+        });
       }
     });
   }

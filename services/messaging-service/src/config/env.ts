@@ -13,6 +13,7 @@ const envSchema = z.object({
     .transform((value) => (value ? Number(value) : 4200))
     .pipe(z.number().min(1000, 'PORT should be >= 1000').max(65535, 'PORT should be <= 65535')),
   NATS_URL: z.string().url().default('nats://localhost:4222'),
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
   SERVICE_NAME: z.string().default('messaging-service'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z
