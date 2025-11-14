@@ -1,9 +1,11 @@
 import { connectDatabase, disconnectDatabase } from "../config/database";
+import { ClinicModel } from "../modules/clinics/clinic.model";
 import { DoctorModel } from "../modules/doctors/doctor.model";
 import { PatientModel } from "../modules/patients/patient.model";
 import { AppointmentModel } from "../modules/appointments/appointment.model";
 import { AdminModel } from "../modules/admins/admin.model";
 import { hashPassword } from "../utils/password";
+import { Types } from "mongoose";
 
 const DEFAULT_TENANT_ID = "demo-clinic";
 
@@ -144,7 +146,11 @@ const sampleAdmin = {
   password: "admin123",
 };
 
-const createSampleAppointments = async (patientId: string, doctorIds: string[]) => {
+const createSampleAppointments = async (
+  patientId: string,
+  doctorIds: string[],
+  clinicIds: (Types.ObjectId | null)[]
+) => {
   const upcomingDate = (daysFromNow: number, hour = 10) => {
     const date = new Date();
     date.setDate(date.getDate() + daysFromNow);
@@ -169,6 +175,7 @@ const createSampleAppointments = async (patientId: string, doctorIds: string[]) 
 
   for (const payload of appointmentPayloads) {
     const doctorId = doctorIds[payload.doctorIndex];
+    const clinicId = clinicIds[payload.doctorIndex];
     if (!doctorId) {
       continue;
     }
@@ -185,6 +192,7 @@ const createSampleAppointments = async (patientId: string, doctorIds: string[]) 
           tenantId: DEFAULT_TENANT_ID,
           patient: patientId,
           doctor: doctorId,
+          clinic: clinicId ?? undefined,
           scheduledAt: payload.scheduledAt,
           mode: payload.mode,
           reasonForVisit: payload.reasonForVisit,
@@ -201,18 +209,102 @@ const seed = async () => {
 
   console.info("🌱 Seeding illajwala sample data...");
 
-  const doctors = [];
+  // Create clinics from doctor locations
+  const clinics: Array<{ _id: Types.ObjectId; name: string }> = [];
   for (const doctor of sampleDoctors) {
+    if (doctor.clinicLocations && doctor.clinicLocations.length > 0) {
+      const location = doctor.clinicLocations[0];
+      if (location) {
+        const clinicName = location.name || "Clinic";
+        const clinicSlug = clinicName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+        const clinic = await ClinicModel.findOneAndUpdate(
+          { tenantId: DEFAULT_TENANT_ID, slug: clinicSlug },
+          {
+            $setOnInsert: {
+              tenantId: DEFAULT_TENANT_ID,
+              name: clinicName,
+              slug: clinicSlug,
+              timezone: "Asia/Kolkata",
+              address: location.address,
+              city: location.city,
+              phone: null,
+              email: null,
+              capacity: {},
+              waitlistOverrides: {},
+            },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        clinics.push({ _id: clinic._id as Types.ObjectId, name: clinic.name });
+      }
+    }
+  }
+
+  // Create default clinic if none exist
+  if (clinics.length === 0) {
+    const defaultClinic = await ClinicModel.findOneAndUpdate(
+      { tenantId: DEFAULT_TENANT_ID, slug: "main-clinic" },
+      {
+        $setOnInsert: {
+          tenantId: DEFAULT_TENANT_ID,
+          name: "Main Clinic",
+          slug: "main-clinic",
+          timezone: "Asia/Kolkata",
+          address: null,
+          city: null,
+          phone: null,
+          email: null,
+          capacity: {},
+          waitlistOverrides: {},
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    clinics.push({ _id: defaultClinic._id as Types.ObjectId, name: defaultClinic.name });
+  }
+
+  console.info(`✅ Upserted ${clinics.length} clinic(s)`);
+
+  const doctors = [];
+  const doctorClinicIds: (Types.ObjectId | null)[] = [];
+  for (let i = 0; i < sampleDoctors.length; i++) {
+    const doctor = sampleDoctors[i];
+    if (!doctor) continue;
+
+    let clinicId: Types.ObjectId | null = clinics[0]?._id ?? null;
+
+    // Match doctor to clinic by location
+    if (doctor.clinicLocations && doctor.clinicLocations.length > 0) {
+      const firstLocation = doctor.clinicLocations[0];
+      if (firstLocation) {
+        const locationName = firstLocation.name || "";
+        const matchedClinic = clinics.find((c) => c.name === locationName);
+        if (matchedClinic) {
+          clinicId = matchedClinic._id;
+        }
+      }
+    }
+
     const upserted = await DoctorModel.findOneAndUpdate(
       { tenantId: DEFAULT_TENANT_ID, email: doctor.email },
-      { $set: { ...doctor, tenantId: DEFAULT_TENANT_ID } },
+      {
+        $set: {
+          ...doctor,
+          tenantId: DEFAULT_TENANT_ID,
+          primaryClinicId: clinicId,
+          clinicIds: clinicId ? [clinicId] : [],
+        },
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     doctors.push(upserted);
+    doctorClinicIds.push(clinicId);
   }
   console.info(`✅ Upserted ${doctors.length} doctors`);
 
   const passwordHash = await hashPassword(samplePatient.password);
+  const defaultClinicId = clinics[0]?._id ?? null;
   const patient = await PatientModel.findOneAndUpdate(
     { tenantId: DEFAULT_TENANT_ID, email: samplePatient.email },
     {
@@ -223,6 +315,7 @@ const seed = async () => {
         passwordHash,
         medicalHistory: samplePatient.medicalHistory,
         dependents: samplePatient.dependents,
+        primaryClinicId: defaultClinicId,
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -231,7 +324,8 @@ const seed = async () => {
 
   await createSampleAppointments(
     patient.id,
-    doctors.map((doc) => doc.id)
+    doctors.map((doc) => doc.id),
+    doctorClinicIds
   );
   console.info("✅ Sample appointments ensured");
 

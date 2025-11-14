@@ -9,5 +9,7 @@ export const queryKeys = {
   statsOverview: ["stats", "overview"] as const,
   notificationPreferences: ["patient-notification-preferences"] as const,
   notificationHistory: ["patient-notification-history"] as const,
+  waitlists: (filters?: Record<string, unknown>) => ["waitlists", filters] as const,
+  waitlist: (id: string) => ["waitlist", id] as const,
 };
 

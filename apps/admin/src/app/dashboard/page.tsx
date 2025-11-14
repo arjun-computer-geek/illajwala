@@ -30,6 +30,8 @@ import {
 import { useOpsMetricsQuery } from "../../components/dashboard/queries/use-ops-metrics";
 import { OpsAnalyticsCharts } from "../../components/dashboard/ops-analytics-charts";
 import { NotificationResendPanel } from "../../components/dashboard/notification-resend-panel";
+import { WaitlistOversightPanel } from "../../components/dashboard/waitlist-oversight-panel";
+import { WaitlistPolicyConfig } from "../../components/dashboard/waitlist-policy-config";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -237,6 +239,8 @@ export default function AdminDashboardPage() {
         )}
       </section>
 
+      <WaitlistOversightPanel />
+      <WaitlistPolicyConfig />
       <BookingsTable />
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

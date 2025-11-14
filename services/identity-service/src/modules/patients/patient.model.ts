@@ -1,4 +1,4 @@
-import { Schema, model, type Document } from "mongoose";
+import { Schema, model, type Document, Types } from "mongoose";
 
 export interface Dependent {
   name: string;
@@ -11,12 +11,14 @@ export interface PatientNotificationPreferences {
   emailReminders: boolean;
   smsReminders: boolean;
   whatsappReminders: boolean;
+  waitlistReminders: boolean;
 }
 
 export const defaultNotificationPreferences: PatientNotificationPreferences = {
   emailReminders: true,
   smsReminders: true,
   whatsappReminders: false,
+  waitlistReminders: true,
 };
 
 export interface PatientDocument extends Document {
@@ -29,6 +31,7 @@ export interface PatientDocument extends Document {
   gender?: "male" | "female" | "other";
   medicalHistory?: string[];
   dependents: Dependent[];
+  primaryClinicId?: Types.ObjectId | null;
   notificationPreferences: PatientNotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -55,10 +58,12 @@ const PatientSchema = new Schema<PatientDocument>(
     gender: { type: String, enum: ["male", "female", "other"] },
     medicalHistory: [{ type: String }],
     dependents: { type: [DependentSchema], default: [] },
+    primaryClinicId: { type: Schema.Types.ObjectId, ref: "Clinic", default: null, index: true },
     notificationPreferences: {
       emailReminders: { type: Boolean, default: defaultNotificationPreferences.emailReminders },
       smsReminders: { type: Boolean, default: defaultNotificationPreferences.smsReminders },
       whatsappReminders: { type: Boolean, default: defaultNotificationPreferences.whatsappReminders },
+      waitlistReminders: { type: Boolean, default: defaultNotificationPreferences.waitlistReminders },
     },
   },
   { timestamps: true }

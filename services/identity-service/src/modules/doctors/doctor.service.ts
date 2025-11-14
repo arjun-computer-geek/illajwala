@@ -1,4 +1,4 @@
-import { FilterQuery } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import { StatusCodes } from "http-status-codes";
 import {
   DoctorModel,
@@ -16,11 +16,38 @@ import type {
 import { AppointmentModel } from "../appointments/appointment.model";
 import { AppError } from "../../utils/app-error";
 
-export const createDoctor = async (payload: CreateDoctorInput, tenantId: string) =>
-  DoctorModel.create({ ...payload, tenantId });
+export const createDoctor = async (payload: CreateDoctorInput, tenantId: string) => {
+  const docPayload: Record<string, unknown> = {
+    ...payload,
+    tenantId,
+  };
 
-export const updateDoctor = async (id: string, tenantId: string, payload: UpdateDoctorInput) =>
-  DoctorModel.findOneAndUpdate({ _id: id, tenantId }, payload, { new: true });
+  if ("primaryClinicId" in payload) {
+    docPayload.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+  }
+
+  if (payload.clinicIds) {
+    docPayload.clinicIds = payload.clinicIds.map((id) => new Types.ObjectId(id));
+  }
+
+  return DoctorModel.create(docPayload);
+};
+
+export const updateDoctor = async (id: string, tenantId: string, payload: UpdateDoctorInput) => {
+  const updatePayload: Record<string, unknown> = {
+    ...payload,
+  };
+
+  if (payload.primaryClinicId !== undefined) {
+    updatePayload.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+  }
+
+  if (payload.clinicIds !== undefined) {
+    updatePayload.clinicIds = payload.clinicIds.map((clinicId) => new Types.ObjectId(clinicId));
+  }
+
+  return DoctorModel.findOneAndUpdate({ _id: id, tenantId }, updatePayload, { new: true });
+};
 
 export const updateDoctorProfile = async (id: string, tenantId: string, payload: DoctorProfileUpdateInput) => {
   const doctor = await DoctorModel.findOne({ _id: id, tenantId });
@@ -45,13 +72,21 @@ export const updateDoctorProfile = async (id: string, tenantId: string, payload:
     };
   }
 
-  const assignablePayload = { ...payload } as Partial<DoctorDocument> & {
-    onboardingChecklist?: never;
-  };
-  delete (assignablePayload as Record<string, unknown>).onboardingChecklist;
+  const assignablePayload: Record<string, unknown> = { ...payload };
+  delete assignablePayload.onboardingChecklist;
+  delete assignablePayload.primaryClinicId;
+  delete assignablePayload.clinicIds;
 
   Object.assign(doctor, assignablePayload);
   doctor.lastReviewedAt = new Date();
+
+  if (payload.primaryClinicId !== undefined) {
+    doctor.primaryClinicId = payload.primaryClinicId ? new Types.ObjectId(payload.primaryClinicId) : null;
+  }
+
+  if (payload.clinicIds !== undefined) {
+    doctor.clinicIds = payload.clinicIds.map((id) => new Types.ObjectId(id));
+  }
 
   await doctor.save();
   return doctor;

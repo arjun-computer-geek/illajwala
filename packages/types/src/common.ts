@@ -16,6 +16,14 @@ export const clinicLocationSchema = z.object({
   longitude: z.number().optional(),
 });
 
+export const clinicSummarySchema = z.object({
+  _id: objectIdSchema,
+  name: z.string(),
+  slug: z.string(),
+  timezone: z.string(),
+  city: z.string().optional(),
+});
+
 export const ratingSchema = z
   .number()
   .min(0)
@@ -28,5 +36,6 @@ export type ObjectIdString = z.infer<typeof objectIdSchema>;
 export type Gender = z.infer<typeof genderSchema>;
 export type ConsultationMode = z.infer<typeof consultationModeSchema>;
 export type ClinicLocation = z.infer<typeof clinicLocationSchema>;
+export type ClinicSummary = z.infer<typeof clinicSummarySchema>;
 export type TenantId = z.infer<typeof tenantIdSchema>;
 

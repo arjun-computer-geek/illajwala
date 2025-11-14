@@ -9,6 +9,7 @@ import { AvailabilityPlanner } from "../../components/availability/availability-
 import { useDoctorAuth } from "../../hooks/use-auth";
 import { DoctorShell } from "../../components/layout/doctor-shell";
 import { ConsultationQueue } from "../../components/dashboard/consultation-queue";
+import { WaitlistConsole } from "../../components/dashboard/waitlist-console";
 
 const dashboardHighlights = [
   {
@@ -178,6 +179,7 @@ export default function DoctorDashboardPage() {
         <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
 
         <div className="space-y-6">
+          <WaitlistConsole />
           <ConsultationQueue />
 
           <Card className="rounded-lg border border-border bg-card shadow-sm">

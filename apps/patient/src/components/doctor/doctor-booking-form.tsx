@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { appointmentsApi } from "@/lib/api/appointments";
 import { doctorsApi } from "@/lib/api/doctors";
+import { patientWaitlistsApi } from "@/lib/api/waitlists";
 import { queryKeys } from "@/lib/query-keys";
 import { useAuth } from "@/hooks/use-auth";
 import type { Doctor, ConsultationMode, PatientProfile, DoctorAvailability, DoctorAvailabilityDay } from "@/types/api";
@@ -30,6 +31,17 @@ import { patientsApi } from "@/lib/api/patients";
 import { format } from "date-fns";
 import { getErrorMessage } from "@/lib/errors";
 import type { BookAppointmentResponse } from "@/types/api";
+import { useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 type RazorpayCheckoutHandlerResponse = {
   razorpay_payment_id: string;
@@ -125,6 +137,10 @@ export const DoctorBookingForm = ({ doctor }: DoctorBookingFormProps) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [joinWaitlistDialogOpen, setJoinWaitlistDialogOpen] = useState(false);
+  const [waitlistPreferredStart, setWaitlistPreferredStart] = useState("");
+  const [waitlistPreferredEnd, setWaitlistPreferredEnd] = useState("");
+  const [waitlistNotes, setWaitlistNotes] = useState("");
 
   const modes = useMemo<ConsultationMode[]>(() => {
     if (doctor.consultationModes && doctor.consultationModes.length > 0) {
@@ -455,8 +471,29 @@ export const DoctorBookingForm = ({ doctor }: DoctorBookingFormProps) => {
         ) : null}
 
         {!availabilityLoading && !availabilityError && availableSlotsByDate.size === 0 ? (
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 text-sm text-muted-foreground">
-            {doctor.name} has no open slots in the next two weeks. Try a different doctor or check back soon.
+          <div className="space-y-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <p className="text-sm text-muted-foreground">
+              {doctor.name} has no open slots in the next two weeks. Join the waitlist to be notified when slots become available.
+            </p>
+            {isAuthenticated && role === "patient" && patientId ? (
+              <JoinWaitlistButton
+                doctorId={doctor._id}
+                clinicId={doctor.primaryClinicId}
+                onSuccess={() => {
+                  void queryClient.invalidateQueries({ queryKey: queryKeys.waitlists() });
+                  toast.success("You've been added to the waitlist. We'll notify you when slots open up!");
+                }}
+              />
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/auth/patient/login")}
+                className="w-full sm:w-auto"
+              >
+                Sign in to join waitlist
+              </Button>
+            )}
           </div>
         ) : null}
 
@@ -608,6 +645,115 @@ export const DoctorBookingForm = ({ doctor }: DoctorBookingFormProps) => {
         </Button>
       </form>
     </Form>
+  );
+};
+
+type JoinWaitlistButtonProps = {
+  doctorId: string;
+  clinicId?: string;
+  onSuccess?: () => void;
+};
+
+const JoinWaitlistButton = ({ doctorId, clinicId, onSuccess }: JoinWaitlistButtonProps) => {
+  const { patient } = useAuth();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [preferredStart, setPreferredStart] = useState("");
+  const [preferredEnd, setPreferredEnd] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const joinMutation = useMutation({
+    mutationFn: () => {
+      if (!patient?._id) {
+        throw new Error("Patient ID required");
+      }
+
+      const requestedWindow =
+        preferredStart || preferredEnd
+          ? {
+              start: preferredStart || undefined,
+              end: preferredEnd || undefined,
+              notes: notes || undefined,
+            }
+          : undefined;
+
+      return patientWaitlistsApi.create({
+        patientId: patient._id,
+        doctorId,
+        clinicId,
+        requestedWindow,
+        notes: notes || undefined,
+      });
+    },
+    onSuccess: () => {
+      toast.success("You've been added to the waitlist!");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.waitlists() });
+      setDialogOpen(false);
+      setPreferredStart("");
+      setPreferredEnd("");
+      setNotes("");
+      onSuccess?.();
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Failed to join waitlist. Please try again."));
+    },
+  });
+
+  return (
+    <>
+      <Button type="button" onClick={() => setDialogOpen(true)} className="w-full sm:w-auto">
+        Join Waitlist
+      </Button>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Join Waitlist</DialogTitle>
+            <DialogDescription>
+              We'll notify you when slots become available. You can specify preferred times if you'd like.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="preferred-start">Preferred start time (optional)</Label>
+              <Input
+                id="preferred-start"
+                type="datetime-local"
+                value={preferredStart}
+                onChange={(e) => setPreferredStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferred-end">Preferred end time (optional)</Label>
+              <Input
+                id="preferred-end"
+                type="datetime-local"
+                value={preferredEnd}
+                onChange={(e) => setPreferredEnd(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waitlist-notes">Additional notes (optional)</Label>
+              <Textarea
+                id="waitlist-notes"
+                placeholder="Any specific requirements or preferences..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
+              {joinMutation.isPending ? "Joining..." : "Join Waitlist"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

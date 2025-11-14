@@ -1,5 +1,6 @@
 import { AppointmentsList } from "@/components/account/appointments-list";
 import { NotificationPreferencesPanel } from "@/components/account/notification-preferences";
+import { WaitlistHistory } from "@/components/account/waitlist-history";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function AppointmentsPage() {
         </p>
       </div>
       <AppointmentsList />
+      <WaitlistHistory />
       <NotificationPreferencesPanel />
     </div>
   );

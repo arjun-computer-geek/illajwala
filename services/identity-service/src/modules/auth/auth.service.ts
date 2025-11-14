@@ -1,5 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
 import { verifyPassword, hashPassword } from "../../utils/password";
 import {
   signAccessToken,
@@ -126,6 +127,7 @@ export const registerPatient = async (
     email: payload.email,
     phone: payload.phone,
     passwordHash,
+    primaryClinicId: payload.clinicId ? new Types.ObjectId(payload.clinicId) : null,
   });
 
   return buildPatientAuthResult(patient);

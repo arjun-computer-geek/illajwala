@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { consultationModeSchema, objectIdSchema, tenantIdSchema } from "./common";
+import { clinicSummarySchema, consultationModeSchema, objectIdSchema, tenantIdSchema } from "./common";
 import { doctorSchema } from "./doctors";
 import { patientProfileSchema } from "./patients";
 
@@ -85,6 +85,8 @@ export const appointmentSchema = z.object({
     })
     .partial()
     .optional(),
+  clinicId: objectIdSchema.optional(),
+  clinic: clinicSummarySchema.optional(),
   status: appointmentStatusSchema,
   scheduledAt: z.string(),
   mode: consultationModeSchema,
@@ -97,6 +99,7 @@ export const appointmentSchema = z.object({
 export const bookAppointmentSchema = z.object({
   doctorId: objectIdSchema,
   patientId: objectIdSchema,
+  clinicId: objectIdSchema.optional(),
   scheduledAt: z.string(),
   mode: consultationModeSchema,
   reasonForVisit: z.string().optional(),

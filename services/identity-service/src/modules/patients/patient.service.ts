@@ -5,17 +5,20 @@ import {
 } from "./patient.model";
 import type { CreatePatientInput, UpdatePatientInput, AddDependentInput } from "./patient.schema";
 import { hashPassword } from "../../utils/password";
+import { Types } from "mongoose";
 
 export const createPatient = async (payload: CreatePatientInput, tenantId: string) => {
   const passwordHash = await hashPassword(payload.password);
+  const { clinicId, ...rest } = payload;
   return PatientModel.create({
     tenantId,
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone,
+    name: rest.name,
+    email: rest.email,
+    phone: rest.phone,
     passwordHash,
-    dateOfBirth: payload.dateOfBirth,
-    gender: payload.gender,
+    dateOfBirth: rest.dateOfBirth,
+    gender: rest.gender,
+    primaryClinicId: clinicId ? new Types.ObjectId(clinicId) : null,
     notificationPreferences: defaultNotificationPreferences,
   });
 };
@@ -26,11 +29,19 @@ export const getPatientByEmail = async (email: string, tenantId: string) =>
 export const getPatientById = async (id: string, tenantId: string) =>
   PatientModel.findOne({ _id: id, tenantId }).select("-passwordHash");
 
-export const updatePatientProfile = async (id: string, tenantId: string, payload: UpdatePatientInput) =>
-  PatientModel.findOneAndUpdate({ _id: id, tenantId }, payload, {
+export const updatePatientProfile = async (id: string, tenantId: string, payload: UpdatePatientInput) => {
+  const { clinicId, ...rest } = payload;
+  const updatePayload: Record<string, unknown> = { ...rest };
+
+  if (clinicId !== undefined) {
+    updatePayload.primaryClinicId = clinicId ? new Types.ObjectId(clinicId) : null;
+  }
+
+  return PatientModel.findOneAndUpdate({ _id: id, tenantId }, updatePayload, {
     new: true,
     runValidators: true,
   }).select("-passwordHash");
+};
 
 export const addDependent = async (patientId: string, tenantId: string, dependent: AddDependentInput) =>
   PatientModel.findOneAndUpdate(
@@ -69,6 +80,9 @@ export const updateNotificationPreferences = async (
   }
   if (payload.whatsappReminders !== undefined) {
     update["notificationPreferences.whatsappReminders"] = payload.whatsappReminders;
+  }
+  if (payload.waitlistReminders !== undefined) {
+    update["notificationPreferences.waitlistReminders"] = payload.waitlistReminders;
   }
 
   const patient = await PatientModel.findOneAndUpdate(

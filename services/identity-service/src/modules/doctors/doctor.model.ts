@@ -1,4 +1,4 @@
-import { Schema, model, type Document } from "mongoose";
+import { Schema, model, type Document, Types } from "mongoose";
 
 export type ConsultationMode = "clinic" | "telehealth" | "home-visit";
 export type DoctorReviewStatus = "pending" | "needs-info" | "approved" | "active";
@@ -35,6 +35,8 @@ export interface DoctorDocument extends Document {
   consultationModes: ConsultationMode[];
   fee: number;
   clinicLocations: ClinicLocation[];
+  primaryClinicId?: Types.ObjectId | null;
+  clinicIds: Types.ObjectId[];
   experienceYears?: number;
   rating?: number;
   totalReviews?: number;
@@ -93,6 +95,8 @@ const DoctorSchema = new Schema<DoctorDocument>(
     },
     fee: { type: Number, default: 0 },
     clinicLocations: { type: [ClinicLocationSchema], default: [] },
+    primaryClinicId: { type: Schema.Types.ObjectId, ref: "Clinic", default: null },
+    clinicIds: { type: [Schema.Types.ObjectId], ref: "Clinic", default: [] },
     experienceYears: Number,
     rating: Number,
     totalReviews: Number,
@@ -113,6 +117,7 @@ DoctorSchema.index({ tenantId: 1 });
 DoctorSchema.index({ tenantId: 1, specialization: 1 });
 DoctorSchema.index({ name: "text", specialization: "text" });
 DoctorSchema.index({ tenantId: 1, reviewStatus: 1 });
+DoctorSchema.index({ tenantId: 1, primaryClinicId: 1 });
 DoctorSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 DoctorSchema.index({ tenantId: 1, phone: 1 }, { unique: true });
 

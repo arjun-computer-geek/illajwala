@@ -65,7 +65,7 @@ export const createAppointment = async (
   }
 
   const doctor = await DoctorModel.findOne({ _id: payload.doctorId, tenantId }).select(
-    "fee consultationModes name specialization"
+    "fee consultationModes name specialization primaryClinicId clinicIds"
   );
   if (!doctor) {
     throw AppError.from({
@@ -89,8 +89,13 @@ export const createAppointment = async (
     });
   }
 
+  // Resolve clinicId early for slot locking
+  const clinicId =
+    (payload.clinicId && Types.ObjectId.isValid(payload.clinicId) ? new Types.ObjectId(payload.clinicId) : null) ??
+    (doctor.primaryClinicId ?? null);
+
   const expiresInSeconds = env.APPOINTMENT_PAYMENT_TIMEOUT_MINUTES * 60;
-  const lockAcquired = await acquireSlotLock(tenantId, payload.doctorId, scheduledAt, expiresInSeconds);
+  const lockAcquired = await acquireSlotLock(tenantId, payload.doctorId, scheduledAt, expiresInSeconds, clinicId);
 
   if (!lockAcquired) {
     throw AppError.from({
@@ -176,6 +181,7 @@ export const createAppointment = async (
       tenantId,
       patient: payload.patientId,
       doctor: payload.doctorId,
+      clinic: clinicId ?? undefined,
       scheduledAt,
       mode: payload.mode,
       reasonForVisit: payload.reasonForVisit,
@@ -184,8 +190,9 @@ export const createAppointment = async (
     });
 
   await appointment.populate([
-    { path: "patient", select: "name email phone" },
-    { path: "doctor", select: "name specialization consultationModes fee clinicLocations" },
+    { path: "patient", select: "name email phone primaryClinicId" },
+    { path: "doctor", select: "name specialization consultationModes fee clinicLocations primaryClinicId clinicIds" },
+    { path: "clinic", select: "name slug timezone" },
   ]);
 
     return {
@@ -193,7 +200,7 @@ export const createAppointment = async (
       paymentOrder: paymentPayload,
     };
   } finally {
-    await releaseSlotLock(tenantId, payload.doctorId, scheduledAt);
+    await releaseSlotLock(tenantId, payload.doctorId, scheduledAt, clinicId);
   }
 };
 

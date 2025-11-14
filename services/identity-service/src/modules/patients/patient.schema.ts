@@ -7,6 +7,7 @@ export const createPatientSchema = z.object({
   password: z.string().min(8),
   dateOfBirth: z.coerce.date().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
+  clinicId: z.string().optional(),
 });
 
 export const updatePatientSchema = createPatientSchema.partial().omit({ password: true });

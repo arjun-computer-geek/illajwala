@@ -6,6 +6,8 @@ import { env } from "../../config/env";
 import { registerConsultationWorker } from "../workers/consultation.worker";
 import { registerNotificationResendWorker } from "../workers/notification-resend.worker";
 import type { NotificationChannel } from "@illajwala/types";
+import type { WaitlistEvent } from "../types/waitlist-event";
+import { registerWaitlistWorker } from "../workers/waitlist.worker";
 import { recordQueueDepth } from "../metrics";
 
 /**
@@ -35,6 +37,9 @@ export const createQueueManager = () => {
   }>("notification-resend", {
     connection,
   });
+  const waitlistQueue = new Queue<WaitlistEvent>("waitlist-events", {
+    connection,
+  });
 
   // Register workers lazily; this lets future modules plug in additional
   // handlers (email, SMS, WhatsApp) without refactoring the bootstrap.
@@ -54,6 +59,13 @@ export const createQueueManager = () => {
       queue: notificationResendQueue,
     })
   );
+  workers.push(
+    registerWaitlistWorker({
+      connection,
+      logger,
+      queue: waitlistQueue,
+    })
+  );
 
   const queueApi = consultationQueue as unknown as {
     getJobCounts: (...types: string[]) => Promise<Record<string, number>>;
@@ -61,6 +73,7 @@ export const createQueueManager = () => {
   };
   const dlqApi = consultationDeadLetterQueue as unknown as { close: () => Promise<void> };
   const resendQueueApi = notificationResendQueue as unknown as { close: () => Promise<void> };
+  const waitlistQueueApi = waitlistQueue as unknown as { close: () => Promise<void> };
   const redisConnection = connection as unknown as { quit: () => Promise<void> };
 
   const refreshQueueDepth = async () => {
@@ -91,6 +104,7 @@ export const createQueueManager = () => {
       await queueApi.close();
       await dlqApi.close();
       await resendQueueApi.close();
+      await waitlistQueueApi.close();
       await redisConnection.quit();
     },
   };

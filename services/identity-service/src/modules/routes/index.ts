@@ -8,6 +8,8 @@ import { paymentsRouter } from "../payments/payments.router";
 import { analyticsRouter } from "../analytics/analytics.router";
 import { notificationsRouter } from "../notifications/notifications.router";
 import { realtimeRouter } from "../realtime/realtime.router";
+import { waitlistRouter } from "../waitlists/waitlists.router";
+import { clinicRouter } from "../clinics/clinics.router";
 
 export const rootRouter: Router = Router();
 
@@ -20,4 +22,6 @@ rootRouter.use("/payments", paymentsRouter);
 rootRouter.use("/analytics", analyticsRouter);
 rootRouter.use("/notifications", notificationsRouter);
 rootRouter.use("/realtime", realtimeRouter);
+rootRouter.use("/waitlists", waitlistRouter);
+rootRouter.use("/clinics", clinicRouter);
 

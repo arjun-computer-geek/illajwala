@@ -30,6 +30,8 @@ export const createDoctorSchema = z.object({
   fee: z.number().nonnegative().default(0),
   experienceYears: z.number().int().nonnegative().optional(),
   clinicLocations: z.array(clinicLocationInputSchema).default([]),
+  primaryClinicId: z.string().optional(),
+  clinicIds: z.array(z.string()).optional(),
   reviewStatus: doctorReviewStatusSchema.optional(),
   reviewNotes: z.array(reviewNoteInputSchema).optional(),
   onboardingChecklist: onboardingChecklistInputSchema.optional(),
@@ -46,6 +48,8 @@ export const doctorProfileUpdateSchema = z
     fee: z.number().nonnegative().optional(),
     experienceYears: z.number().int().nonnegative().optional(),
     clinicLocations: z.array(clinicLocationInputSchema).optional(),
+    primaryClinicId: z.string().optional(),
+    clinicIds: z.array(z.string()).optional(),
     profileImageUrl: z.string().url().optional(),
     onboardingChecklist: onboardingChecklistInputSchema.optional(),
   })

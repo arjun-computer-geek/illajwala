@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, Mail, MessageCircle, Phone } from "lucide-react";
+import { Bell, Clock, Mail, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { patientsApi } from "@/lib/api/patients";
 import { queryKeys } from "@/lib/query-keys";
@@ -30,7 +30,14 @@ const channelCopy: Record<keyof NotificationPreferences, { label: string; descri
     description: "Visit reminders and quick support nudges.",
     icon: <MessageCircle className="h-4 w-4 text-primary" />,
   },
+  waitlistReminders: {
+    label: "Waitlist nudges",
+    description: "Alerts when a spot opens up or invitations require action.",
+    icon: <Clock className="h-4 w-4 text-primary" />,
+  },
 };
+
+const channelKeys = Object.keys(channelCopy) as Array<keyof NotificationPreferences>;
 
 const statusVariant: Record<NotificationHistoryEntry["status"], "default" | "secondary" | "destructive" | "outline"> = {
   queued: "outline",
@@ -118,7 +125,7 @@ export const NotificationPreferencesPanel = () => {
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           {preferencesLoading ? (
-            Array.from({ length: 3 }).map((_, index) => (
+            Array.from({ length: channelKeys.length }).map((_, index) => (
               <Skeleton key={index} className="h-32 rounded-2xl" />
             ))
           ) : preferencesError ? (
@@ -126,7 +133,7 @@ export const NotificationPreferencesPanel = () => {
               We weren&apos;t able to load your preferences. Retry shortly.
             </div>
           ) : preferences ? (
-            (Object.keys(channelCopy) as Array<keyof NotificationPreferences>).map((channel) => {
+            channelKeys.map((channel) => {
               const channelState = channelCopy[channel];
               const active = preferences[channel];
               return (

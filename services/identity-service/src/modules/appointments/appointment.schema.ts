@@ -3,6 +3,7 @@ import { z } from "zod";
 export const createAppointmentSchema = z.object({
   patientId: z.string().min(1),
   doctorId: z.string().min(1),
+  clinicId: z.string().optional(),
   scheduledAt: z.coerce.date(),
   mode: z.enum(["clinic", "telehealth", "home-visit"]),
   reasonForVisit: z.string().max(500).optional(),

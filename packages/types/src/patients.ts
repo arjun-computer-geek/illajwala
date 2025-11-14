@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { clinicLocationSchema, genderSchema, objectIdSchema, tenantIdSchema } from "./common";
+import { clinicLocationSchema, clinicSummarySchema, genderSchema, objectIdSchema, tenantIdSchema } from "./common";
 
 export const dependentSchema = z.object({
   name: z.string().min(1),
@@ -12,6 +12,7 @@ export const notificationPreferencesSchema = z.object({
   emailReminders: z.boolean().default(true),
   smsReminders: z.boolean().default(true),
   whatsappReminders: z.boolean().default(false),
+  waitlistReminders: z.boolean().default(true),
 });
 
 export const patientProfileSchema = z.object({
@@ -24,11 +25,13 @@ export const patientProfileSchema = z.object({
   gender: genderSchema.optional(),
   medicalHistory: z.array(z.string()).default([]),
   dependents: z.array(dependentSchema).default([]),
-  primaryClinic: clinicLocationSchema.optional(),
+  primaryClinicId: objectIdSchema.optional(),
+  primaryClinic: clinicSummarySchema.optional(),
   notificationPreferences: notificationPreferencesSchema.default({
     emailReminders: true,
     smsReminders: true,
     whatsappReminders: false,
+    waitlistReminders: true,
   }),
 });
 

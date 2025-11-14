@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   clinicLocationSchema,
+  clinicSummarySchema,
   consultationModeSchema,
   objectIdSchema,
   ratingSchema,
@@ -37,6 +38,9 @@ export const doctorSchema = z.object({
   rating: ratingSchema,
   totalReviews: z.number().int().nonnegative().optional(),
   clinicLocations: z.array(clinicLocationSchema).default([]),
+  primaryClinicId: objectIdSchema.optional(),
+  primaryClinic: clinicSummarySchema.optional(),
+  clinicIds: z.array(objectIdSchema).optional(),
   experienceYears: z.number().int().nonnegative().optional(),
   profileImageUrl: z.string().url().optional(),
   highlighted: z.boolean().optional(),

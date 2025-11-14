@@ -67,6 +67,7 @@ export interface AppointmentDocument extends Document {
   tenantId: string;
   patient: Types.ObjectId;
   doctor: Types.ObjectId;
+  clinic?: Types.ObjectId | null;
   scheduledAt: Date;
   mode: ConsultationMode;
   reasonForVisit?: string;
@@ -83,6 +84,7 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
     tenantId: { type: String, required: true, index: true, trim: true },
     patient: { type: Schema.Types.ObjectId, ref: "Patient", required: true },
     doctor: { type: Schema.Types.ObjectId, ref: "Doctor", required: true },
+    clinic: { type: Schema.Types.ObjectId, ref: "Clinic", index: true },
     scheduledAt: { type: Date, required: true },
     mode: { type: String, enum: ["clinic", "telehealth", "home-visit"], required: true },
     reasonForVisit: { type: String, trim: true },
@@ -157,6 +159,7 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
 AppointmentSchema.index({ tenantId: 1, doctor: 1, scheduledAt: 1 });
 AppointmentSchema.index({ tenantId: 1, patient: 1, scheduledAt: -1 });
 AppointmentSchema.index({ tenantId: 1, status: 1, scheduledAt: -1 });
+AppointmentSchema.index({ tenantId: 1, clinic: 1, scheduledAt: 1 });
 
 export const AppointmentModel = model<AppointmentDocument>("Appointment", AppointmentSchema);
 

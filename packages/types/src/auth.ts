@@ -2,7 +2,7 @@ import { z } from "zod";
 import { doctorSchema } from "./doctors";
 import { patientProfileSchema } from "./patients";
 import { adminSchema } from "./admin";
-import { tenantIdSchema } from "./common";
+import { objectIdSchema, tenantIdSchema } from "./common";
 
 const baseAuthResponseSchema = z.object({
   token: z.string(),
@@ -15,6 +15,7 @@ export const registerPatientSchema = z.object({
   email: z.string().email(),
   phone: z.string().min(8),
   password: z.string().min(8, "Password must be at least 8 characters long"),
+  clinicId: objectIdSchema.optional(),
 });
 
 export const loginPatientSchema = z.object({
