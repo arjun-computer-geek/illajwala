@@ -18,13 +18,28 @@
     "format": "prettier --cache --check .",
     "format:write": "prettier --cache --write .",
     "test": "pnpm -r test",
-    "clean": "pnpm -r exec rimraf dist .next"
+    "clean": "pnpm -r exec rimraf dist .next",
+    "prepare": "husky install",
+    "validate:env": "ts-node scripts/validate-env.ts",
+    "db:seed": "pnpm --filter @illajwala/identity-service seed",
+    "db:reset": "pnpm --filter @illajwala/identity-service reset"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.0",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
 

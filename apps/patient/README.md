@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Patient App
+
+Next.js application for patients to discover doctors, book appointments, and manage their healthcare.
+
+## Overview
+
+The patient app provides:
+- Doctor search and discovery
+- Appointment booking
+- Waitlist enrollment
+- Appointment history
+- Profile management
+- Notification preferences
+
+## Tech Stack
+
+- **Framework:** Next.js 15+ (App Router)
+- **Language:** TypeScript
+- **UI:** React 18+, Tailwind CSS
+- **State:** React Query (TanStack Query)
+- **Forms:** React Hook Form
+- **Components:** shadcn/ui
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20 LTS
+- PNPM 9.x
+- Running identity service
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api
+```
 
-## Learn More
+### Running
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Development mode
+pnpm dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Production build
+pnpm build
+pnpm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The app runs on http://localhost:3000
 
-## Deploy on Vercel
+## Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Doctor Search
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Search by specialization
+- Filter by location, availability
+- View doctor profiles and ratings
+- Check availability calendar
+
+### Appointment Booking
+
+- Select date and time
+- Choose consultation mode (clinic/telehealth)
+- Add reason for visit
+- Complete payment
+- Join waitlist if slots full
+
+### Account Management
+
+- View appointment history
+- Manage profile
+- Update notification preferences
+- View waitlist status
+
+## Project Structure
+
+```
+patient/
+├── src/
+│   ├── app/                # Next.js app router pages
+│   │   ├── page.tsx        # Home page
+│   │   ├── search/         # Doctor search
+│   │   ├── doctors/        # Doctor details
+│   │   ├── auth/           # Authentication
+│   │   └── account/        # Account management
+│   ├── components/         # React components
+│   │   ├── layout/         # Layout components
+│   │   ├── doctor/         # Doctor-related components
+│   │   ├── search/         # Search components
+│   │   └── ui/             # UI components
+│   ├── lib/                # Utilities
+│   │   ├── api/            # API client
+│   │   └── utils.ts
+│   └── hooks/              # Custom hooks
+└── package.json
+```
+
+## Development
+
+### Adding New Pages
+
+1. Create page in `src/app/[route]/page.tsx`
+2. Add navigation if needed
+3. Implement data fetching with React Query
+
+### Adding Components
+
+1. Create component in `src/components/`
+2. Use shared UI components from `packages/ui`
+3. Follow existing patterns
+
+## License
+
+MIT

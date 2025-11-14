@@ -101,7 +101,77 @@ To wipe all persistence volumes (this deletes Mongo and Redis data):
 docker compose down -v
 ```
 
+## 5. Development Utilities
+
+### Database Management
+
+```powershell
+# Seed database with sample data
+pnpm db:seed
+
+# Reset database (WARNING: deletes all data)
+pnpm db:reset
+
+# Run clinic migration
+cd services/identity-service
+pnpm migrate:clinics
+```
+
+### Environment Validation
+
+```powershell
+# Validate environment setup
+pnpm validate:env
+```
+
+This checks that:
+- Required environment variables are configured
+- Docker services are accessible
+- Database connections are valid
+
+## 6. Troubleshooting
+
+### MongoDB Replica Set Not Initialized
+
+If you see errors about replica sets:
+
+```powershell
+docker exec -it illajwala-mongodb mongosh --eval "rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'illajwala-mongodb:27017' }]})"
+```
+
+### Port Conflicts
+
+If ports are already in use:
+
+```powershell
+# Find process using port (Windows)
+netstat -ano | findstr :3000
+
+# Kill process
+taskkill /PID [pid] /F
+```
+
+### Reset Everything
+
+To start fresh:
+
+```powershell
+# Stop and remove containers with volumes
+cd infra
+docker compose down -v
+
+# Restart
+docker compose up -d
+
+# Reinitialize replica set
+docker exec -it illajwala-mongodb mongosh --eval "rs.initiate({_id: 'rs0', members: [{ _id: 0, host: 'illajwala-mongodb:27017' }]})"
+
+# Reseed database
+cd ../services/identity-service
+pnpm seed
+```
+
 ---
 
-Document updates or improvements to this guide in the Sprint 0 QA checklist so the team stays aligned on environment expectations.
+For more detailed information, see [Development Guide](./DEVELOPMENT.md) and [Contributing Guide](./CONTRIBUTING.md).
 
