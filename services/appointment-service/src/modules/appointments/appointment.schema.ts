@@ -29,6 +29,16 @@ export const updateAppointmentStatusSchema = z.object({
       endedAt: z.coerce.date().optional(),
       notes: z.string().max(5000).optional(),
       followUpActions: z.array(z.string().max(500)).optional(),
+      followUps: z
+        .array(
+          z.object({
+            action: z.string().min(1).max(500),
+            scheduledAt: z.coerce.date().optional(),
+            priority: z.enum(['low', 'medium', 'high']).optional(),
+            completed: z.boolean().optional(),
+          }),
+        )
+        .optional(),
       vitals: z
         .array(
           z.object({
@@ -46,6 +56,30 @@ export const updateAppointmentStatusSchema = z.object({
             url: z.string().url().optional(),
             contentType: z.string().max(120).optional(),
             sizeInBytes: z.number().int().nonnegative().optional(),
+          }),
+        )
+        .optional(),
+      prescriptions: z
+        .array(
+          z.object({
+            medication: z.string().min(1).max(200),
+            dosage: z.string().min(1).max(100),
+            frequency: z.string().min(1).max(100),
+            duration: z.string().max(100).optional(),
+            instructions: z.string().max(1000).optional(),
+            refills: z.number().int().nonnegative().optional(),
+          }),
+        )
+        .optional(),
+      referrals: z
+        .array(
+          z.object({
+            type: z.enum(['specialist', 'lab', 'imaging', 'therapy', 'other']),
+            specialty: z.string().max(200).optional(),
+            provider: z.string().max(200).optional(),
+            reason: z.string().min(1).max(500),
+            priority: z.enum(['routine', 'urgent', 'emergency']).optional(),
+            notes: z.string().max(1000).optional(),
           }),
         )
         .optional(),

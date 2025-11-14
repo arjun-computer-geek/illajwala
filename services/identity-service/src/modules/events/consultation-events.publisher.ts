@@ -1,10 +1,16 @@
-import { Queue } from "bullmq";
-import type { ConsultationEvent, ConsultationEventType } from "@illajwala/types";
-import { redis } from "../../config/redis";
+import type { ConsultationEvent, ConsultationEventType } from '@illajwala/types';
+import { createEventPublisher } from '@illajwala/event-bus';
 
-const consultationQueue = new Queue<ConsultationEvent>("consultation-events", {
-  connection: redis,
-});
+// Create a singleton event publisher instance
+let eventPublisher: ReturnType<typeof createEventPublisher> | null = null;
+
+const getEventPublisher = async () => {
+  if (!eventPublisher) {
+    eventPublisher = createEventPublisher();
+    await eventPublisher.connect();
+  }
+  return eventPublisher;
+};
 
 type PublishConsultationEventInput = {
   type: ConsultationEventType;
@@ -15,15 +21,37 @@ type PublishConsultationEventInput = {
   patientId: string;
   patientName?: string;
   patientEmail?: string;
+  patientPhone?: string;
   scheduledAt: string;
   metadata?: Record<string, unknown>;
+  notificationPreferences?: Record<string, unknown>;
 };
 
 export const publishConsultationEvent = async (payload: PublishConsultationEventInput) => {
-  await consultationQueue.add(payload.type, payload, {
-    removeOnComplete: 100,
-    removeOnFail: 25,
-  });
+  const publisher = await getEventPublisher();
+
+  const event: ConsultationEvent = {
+    type: payload.type,
+    tenantId: payload.tenantId,
+    appointmentId: payload.appointmentId,
+    doctorId: payload.doctorId,
+    doctorName: payload.doctorName,
+    patientId: payload.patientId,
+    patientName: payload.patientName,
+    patientEmail: payload.patientEmail,
+    patientPhone: payload.patientPhone,
+    scheduledAt: payload.scheduledAt,
+    metadata: payload.metadata,
+    notificationPreferences: payload.notificationPreferences as any,
+  };
+
+  await publisher.publish(event);
 };
 
-
+// Graceful shutdown
+export const disconnectEventPublisher = async () => {
+  if (eventPublisher) {
+    await eventPublisher.disconnect();
+    eventPublisher = null;
+  }
+};

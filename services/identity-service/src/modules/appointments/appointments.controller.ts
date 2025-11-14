@@ -7,15 +7,10 @@ import type {
   ConfirmAppointmentPaymentInput,
   UpdateAppointmentPaymentInput,
 } from './appointment.schema';
-import {
-  createAppointment,
-  listAppointments,
-  updateAppointmentStatus,
-  confirmAppointmentPayment,
-  updateAppointmentPayment,
-} from './appointment.service';
+import { getServiceClients } from '../../config/service-clients';
 import type { AuthenticatedRequest } from '../../utils';
 import { requireTenantId } from '../../utils';
+import type { BookAppointmentPayload } from '@illajwala/types';
 
 export const handleCreateAppointment = catchAsync<
   Record<string, never>,
@@ -26,13 +21,24 @@ export const handleCreateAppointment = catchAsync<
     req: AuthenticatedRequest<Record<string, never>, unknown, CreateAppointmentInput>,
     res: Response,
   ) => {
-    const tenantId = requireTenantId(req);
-    const { appointment, paymentOrder } = await createAppointment(req.body, req.user, tenantId);
+    const { appointment } = getServiceClients(req);
+    const payload: BookAppointmentPayload = {
+      doctorId: req.body.doctorId,
+      patientId: req.body.patientId,
+      clinicId: req.body.clinicId,
+      scheduledAt:
+        req.body.scheduledAt instanceof Date
+          ? req.body.scheduledAt.toISOString()
+          : req.body.scheduledAt,
+      mode: req.body.mode,
+      reasonForVisit: req.body.reasonForVisit,
+    };
+    const result = await appointment.createAppointment(payload);
     return res.status(StatusCodes.CREATED).json(
       successResponse(
         {
-          appointment,
-          payment: paymentOrder,
+          appointment: result.appointment,
+          payment: result.payment,
         },
         'Appointment created',
       ),
@@ -43,34 +49,31 @@ export const handleCreateAppointment = catchAsync<
 export const handleListAppointments = catchAsync(
   async (req: AuthenticatedRequest, res: Response) => {
     const page = Number(req.query.page ?? 1);
-    const pageSize = Number(req.query.pageSize ?? 20);
-    const { patientId, doctorId, status } = req.query as {
+    const limit = Number(req.query.limit ?? req.query.pageSize ?? 20);
+    const { patientId, doctorId, status, startDate, endDate } = req.query as {
       patientId?: string;
       doctorId?: string;
       status?: string;
+      startDate?: string;
+      endDate?: string;
     };
-    const tenantId = requireTenantId(req);
-
-    const filters: { patientId?: string; doctorId?: string; status?: string } = {};
-    if (patientId) {
-      filters.patientId = patientId;
-    }
-    if (doctorId) {
-      filters.doctorId = doctorId;
-    }
-    if (status && typeof status === 'string') {
-      filters.status = status;
-    }
-
-    const { items, total } = await listAppointments({
-      page,
-      pageSize,
-      ...filters,
-      requester: req.user,
-      tenantId,
-    });
-
-    return res.json(paginateResponse(items, total, page, pageSize));
+    const { appointment } = getServiceClients(req);
+    const params: {
+      patientId?: string;
+      doctorId?: string;
+      status?: any;
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+      limit?: number;
+    } = { page, limit };
+    if (patientId) params.patientId = patientId;
+    if (doctorId) params.doctorId = doctorId;
+    if (status) params.status = status;
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    const result = await appointment.listAppointments(params);
+    return res.json(paginateResponse(result.appointments, result.total, page, limit));
   },
 );
 
@@ -83,14 +86,13 @@ export const handleUpdateAppointmentStatus = catchAsync<
     req: AuthenticatedRequest<{ id: string }, unknown, UpdateAppointmentStatusInput>,
     res: Response,
   ) => {
-    const tenantId = requireTenantId(req);
-    const appointment = await updateAppointmentStatus(req.params.id, req.body, req.user, tenantId);
-
-    if (!appointment) {
-      throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Appointment not found' });
-    }
-
-    return res.json(successResponse(appointment, 'Appointment updated'));
+    const { appointment } = getServiceClients(req);
+    const updated = await appointment.updateAppointmentStatus(
+      req.params.id,
+      req.body.status,
+      req.body.notes,
+    );
+    return res.json(successResponse(updated, 'Appointment updated'));
   },
 );
 
@@ -103,14 +105,9 @@ export const handleConfirmAppointmentPayment = catchAsync<
     req: AuthenticatedRequest<{ id: string }, unknown, ConfirmAppointmentPaymentInput>,
     res: Response,
   ) => {
-    const tenantId = requireTenantId(req);
-    const appointment = await confirmAppointmentPayment(
-      req.params.id,
-      req.body,
-      req.user,
-      tenantId,
-    );
-    return res.json(successResponse(appointment, 'Payment confirmed'));
+    const { appointment } = getServiceClients(req);
+    const confirmed = await appointment.confirmPayment(req.params.id, req.body);
+    return res.json(successResponse(confirmed, 'Payment confirmed'));
   },
 );
 
@@ -123,8 +120,11 @@ export const handleUpdateAppointmentPayment = catchAsync<
     req: AuthenticatedRequest<{ id: string }, unknown, UpdateAppointmentPaymentInput>,
     res: Response,
   ) => {
-    const tenantId = requireTenantId(req);
-    const appointment = await updateAppointmentPayment(req.params.id, req.body, req.user, tenantId);
-    return res.json(successResponse(appointment, 'Appointment payment updated'));
+    // This endpoint might not be needed after migration
+    // For now, return error
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_IMPLEMENTED,
+      message: 'Payment update should be handled by payment service',
+    });
   },
 );

@@ -8,6 +8,9 @@ import { notificationsRouter } from '../notifications/notifications.router';
 import { realtimeRouter } from '../realtime/realtime.router';
 import { waitlistRouter } from '../waitlists/waitlists.router';
 import { clinicRouter } from '../clinics/clinics.router';
+import { analyticsRouter } from '../analytics/analytics.router';
+import { statsRouter } from '../stats/stats.router';
+import { storageRouter } from '../storage/storage.router';
 import { apiRateLimit } from '../../middlewares';
 
 export const rootRouter: Router = Router();
@@ -17,8 +20,7 @@ rootRouter.use(apiRateLimit);
 
 rootRouter.use('/auth', authRouter);
 rootRouter.use('/patients', patientRouter);
-// TODO: Remove these routes once inter-service communication is set up
-// These modules should be accessed via provider-service, appointment-service, etc.
+// API Gateway routes - these forward to respective services via service clients
 rootRouter.use('/doctors', doctorRouter);
 rootRouter.use('/appointments', appointmentRouter);
 rootRouter.use('/payments', paymentsRouter);
@@ -26,3 +28,6 @@ rootRouter.use('/notifications', notificationsRouter);
 rootRouter.use('/realtime', realtimeRouter);
 rootRouter.use('/waitlists', waitlistRouter);
 rootRouter.use('/clinics', clinicRouter);
+rootRouter.use('/analytics', analyticsRouter);
+rootRouter.use('/stats', statsRouter);
+rootRouter.use('/storage', storageRouter);

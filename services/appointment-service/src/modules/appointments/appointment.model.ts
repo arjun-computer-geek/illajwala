@@ -32,6 +32,31 @@ export interface AppointmentConsultationVitalsEntry {
   unit?: string;
 }
 
+export interface AppointmentConsultationPrescription {
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
+  refills?: number;
+}
+
+export interface AppointmentConsultationFollowUp {
+  action: string;
+  scheduledAt?: Date;
+  priority?: 'low' | 'medium' | 'high';
+  completed?: boolean;
+}
+
+export interface AppointmentConsultationReferral {
+  type: 'specialist' | 'lab' | 'imaging' | 'therapy' | 'other';
+  specialty?: string;
+  provider?: string;
+  reason: string;
+  priority?: 'routine' | 'urgent' | 'emergency';
+  notes?: string;
+}
+
 // All visit-related information lives under `consultation`. We track optional
 // metadata only when the visit progresses beyond confirmation.
 export interface AppointmentConsultation {
@@ -39,8 +64,11 @@ export interface AppointmentConsultation {
   endedAt?: Date;
   notes?: string;
   followUpActions?: string[];
+  followUps?: AppointmentConsultationFollowUp[];
   attachments?: AppointmentConsultationAttachment[];
   vitals?: AppointmentConsultationVitalsEntry[];
+  prescriptions?: AppointmentConsultationPrescription[];
+  referrals?: AppointmentConsultationReferral[];
   lastEditedBy?: Types.ObjectId;
 }
 
@@ -116,6 +144,14 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
       endedAt: { type: Date },
       notes: { type: String },
       followUpActions: [String],
+      followUps: [
+        {
+          action: { type: String, required: true },
+          scheduledAt: { type: Date },
+          priority: { type: String, enum: ['low', 'medium', 'high'] },
+          completed: { type: Boolean },
+        },
+      ],
       attachments: [
         {
           key: { type: String, required: true },
@@ -130,6 +166,30 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
           label: { type: String, required: true },
           value: { type: String, required: true },
           unit: { type: String },
+        },
+      ],
+      prescriptions: [
+        {
+          medication: { type: String, required: true },
+          dosage: { type: String, required: true },
+          frequency: { type: String, required: true },
+          duration: { type: String },
+          instructions: { type: String },
+          refills: { type: Number, min: 0 },
+        },
+      ],
+      referrals: [
+        {
+          type: {
+            type: String,
+            enum: ['specialist', 'lab', 'imaging', 'therapy', 'other'],
+            required: true,
+          },
+          specialty: { type: String },
+          provider: { type: String },
+          reason: { type: String, required: true },
+          priority: { type: String, enum: ['routine', 'urgent', 'emergency'] },
+          notes: { type: String },
         },
       ],
       lastEditedBy: { type: Schema.Types.ObjectId, ref: 'User' },

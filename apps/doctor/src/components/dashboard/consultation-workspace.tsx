@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Appointment, AppointmentStatus } from '@illajwala/types';
 import {
   Badge,
@@ -15,14 +15,20 @@ import { SessionTimer } from './consultation-workspace/session-timer';
 import { NotesSection } from './consultation-workspace/notes-section';
 import { VitalsSection } from './consultation-workspace/vitals-section';
 import { AttachmentsSection } from './consultation-workspace/attachments-section';
+import { PrescriptionsSection } from './consultation-workspace/prescriptions-section';
+import { ReferralsSection } from './consultation-workspace/referrals-section';
 import {
   formatDuration,
   toFollowUpText,
   toFollowUpArray,
   mapVitals,
   mapAttachments,
+  mapPrescriptions,
+  mapReferrals,
   type VitalDraft,
   type AttachmentDraft,
+  type PrescriptionDraft,
+  type ReferralDraft,
 } from './consultation-workspace/utils';
 
 type WorkspaceProps = {
@@ -50,17 +56,22 @@ export const ConsultationWorkspace = ({
   const [attachments, setAttachments] = useState<AttachmentDraft[]>(() =>
     mapAttachments(appointment),
   );
+  const [prescriptions, setPrescriptions] = useState<PrescriptionDraft[]>(() =>
+    mapPrescriptions(appointment),
+  );
+  const [referrals, setReferrals] = useState<ReferralDraft[]>(() => mapReferrals(appointment));
   const [elapsed, setElapsed] = useState(() => {
     const started = startedAtIso ? new Date(startedAtIso).getTime() : null;
     return started ? formatDuration(Date.now() - started) : '00:00';
   });
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setNotes(appointment.consultation?.notes ?? '');
     setFollowUps(toFollowUpText(appointment.consultation?.followUpActions));
     setVitals(mapVitals(appointment));
     setAttachments(mapAttachments(appointment));
+    setPrescriptions(mapPrescriptions(appointment));
+    setReferrals(mapReferrals(appointment));
   }, [appointment]);
 
   useEffect(() => {
@@ -83,9 +94,12 @@ export const ConsultationWorkspace = ({
     return () => window.clearInterval(interval);
   }, [startedAtIso]);
 
-  const handleAddVital = () => {
-    const id = `vital-${Date.now()}`;
-    setVitals((current) => [...current, { id, label: '', value: '', unit: '' }]);
+  const handleAddVital = (vital?: Partial<Omit<VitalDraft, 'id'>>) => {
+    const id = `vital-${Date.now()}-${Math.random()}`;
+    setVitals((current) => [
+      ...current,
+      { id, label: vital?.label ?? '', value: vital?.value ?? '', unit: vital?.unit ?? '' },
+    ]);
   };
 
   const handleUpdateVital = (id: string, field: keyof Omit<VitalDraft, 'id'>, value: string) => {
@@ -98,31 +112,51 @@ export const ConsultationWorkspace = ({
     setVitals((current) => current.filter((vital) => vital.id !== id));
   };
 
-  const handleAttachmentsSelected = (files: FileList | null) => {
-    if (!files || files.length === 0) {
-      return;
-    }
-
-    const nextAttachments: AttachmentDraft[] = Array.from(files).map((file) => ({
-      id: `upload-${Date.now()}-${file.name}`,
-      key: `upload-${Date.now()}-${file.name}`,
-      name: file.name,
-      contentType: file.type || undefined,
-      sizeInBytes: file.size || undefined,
-    }));
-
-    setAttachments((current) => [...current, ...nextAttachments]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleAttachmentsChange = (newAttachments: AttachmentDraft[]) => {
+    setAttachments(newAttachments);
   };
 
-  const handleFileInputClick = () => {
-    fileInputRef.current?.click();
+  const handleAddPrescription = () => {
+    const id = `prescription-${Date.now()}-${Math.random()}`;
+    setPrescriptions((current) => [...current, { id, medication: '', dosage: '', frequency: '' }]);
   };
 
-  const handleRemoveAttachment = (id: string) => {
-    setAttachments((current) => current.filter((attachment) => attachment.id !== id));
+  const handleUpdatePrescription = (
+    id: string,
+    field: keyof Omit<PrescriptionDraft, 'id'>,
+    value: string | number | undefined,
+  ) => {
+    setPrescriptions((current) =>
+      current.map((prescription) =>
+        prescription.id === id ? { ...prescription, [field]: value } : prescription,
+      ),
+    );
+  };
+
+  const handleRemovePrescription = (id: string) => {
+    setPrescriptions((current) => current.filter((prescription) => prescription.id !== id));
+  };
+
+  const handleAddReferral = () => {
+    const id = `referral-${Date.now()}-${Math.random()}`;
+    setReferrals((current) => [
+      ...current,
+      { id, type: 'specialist', reason: '', priority: 'routine' },
+    ]);
+  };
+
+  const handleUpdateReferral = (
+    id: string,
+    field: keyof Omit<ReferralDraft, 'id'>,
+    value: string | undefined,
+  ) => {
+    setReferrals((current) =>
+      current.map((referral) => (referral.id === id ? { ...referral, [field]: value } : referral)),
+    );
+  };
+
+  const handleRemoveReferral = (id: string) => {
+    setReferrals((current) => current.filter((referral) => referral.id !== id));
   };
 
   const consultationPayload = useMemo(
@@ -146,8 +180,38 @@ export const ConsultationWorkspace = ({
               ...(attachment.contentType ? { contentType: attachment.contentType } : {}),
               ...(attachment.sizeInBytes ? { sizeInBytes: attachment.sizeInBytes } : {}),
             })),
+      prescriptions:
+        prescriptions.length === 0
+          ? undefined
+          : prescriptions
+              .filter((p) => p.medication.trim() && p.dosage.trim() && p.frequency.trim())
+              .map((prescription) => ({
+                medication: prescription.medication.trim(),
+                dosage: prescription.dosage.trim(),
+                frequency: prescription.frequency.trim(),
+                ...(prescription.duration?.trim()
+                  ? { duration: prescription.duration.trim() }
+                  : {}),
+                ...(prescription.instructions?.trim()
+                  ? { instructions: prescription.instructions.trim() }
+                  : {}),
+                ...(prescription.refills !== undefined ? { refills: prescription.refills } : {}),
+              })),
+      referrals:
+        referrals.length === 0
+          ? undefined
+          : referrals
+              .filter((r) => r.reason.trim())
+              .map((referral) => ({
+                type: referral.type,
+                reason: referral.reason.trim(),
+                ...(referral.specialty?.trim() ? { specialty: referral.specialty.trim() } : {}),
+                ...(referral.provider?.trim() ? { provider: referral.provider.trim() } : {}),
+                ...(referral.priority ? { priority: referral.priority } : {}),
+                ...(referral.notes?.trim() ? { notes: referral.notes.trim() } : {}),
+              })),
     }),
-    [attachments, followUps, notes, vitals],
+    [attachments, followUps, notes, vitals, prescriptions, referrals],
   );
 
   const handleSave = async (status: AppointmentStatus) => {
@@ -234,10 +298,22 @@ export const ConsultationWorkspace = ({
 
         <AttachmentsSection
           attachments={attachments}
-          onAdd={handleFileInputClick}
-          onRemove={handleRemoveAttachment}
-          fileInputRef={fileInputRef}
-          onFileSelect={handleAttachmentsSelected}
+          onAttachmentsChange={handleAttachmentsChange}
+          appointmentId={appointment._id}
+        />
+
+        <PrescriptionsSection
+          prescriptions={prescriptions}
+          onAdd={handleAddPrescription}
+          onUpdate={handleUpdatePrescription}
+          onRemove={handleRemovePrescription}
+        />
+
+        <ReferralsSection
+          referrals={referrals}
+          onAdd={handleAddReferral}
+          onUpdate={handleUpdateReferral}
+          onRemove={handleRemoveReferral}
         />
       </div>
 

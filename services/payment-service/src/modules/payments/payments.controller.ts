@@ -52,7 +52,7 @@ export const handleCreatePaymentOrder = catchAsync(
     );
 
     // Create payment transaction record
-    await createPaymentTransaction(
+    const transaction = await createPaymentTransaction(
       tenantId,
       order.orderId,
       order.amount,
@@ -62,6 +62,34 @@ export const handleCreatePaymentOrder = catchAsync(
       order.receipt,
       notes,
     );
+
+    // Publish payment created event
+    try {
+      const { publishPaymentEvent } = await import('./payment-events.publisher');
+      const eventData: {
+        type: 'payment.created';
+        tenantId: string;
+        orderId: string;
+        amount: number;
+        currency: string;
+        status: 'pending';
+        metadata?: Record<string, unknown>;
+      } = {
+        type: 'payment.created',
+        tenantId,
+        orderId: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        status: 'pending',
+      };
+      if (notes) {
+        eventData.metadata = notes as Record<string, unknown>;
+      }
+      await publishPaymentEvent(eventData);
+    } catch (error) {
+      // Log error but don't fail the request
+      console.error('Failed to publish payment created event', error);
+    }
 
     return res.status(StatusCodes.CREATED).json(successResponse(order, 'Payment order created'));
   },
@@ -203,8 +231,48 @@ const razorpayWebhookHandler = async (req: Request, res: Response) => {
     },
   });
 
-  // TODO: Publish payment event via event bus to notify appointment-service
-  // await publishPaymentEvent({ type: 'payment.captured', orderId, paymentId, ... });
+  // Publish payment event via event bus
+  try {
+    const eventType =
+      eventName === 'payment.captured'
+        ? 'payment.captured'
+        : eventName === 'payment.failed'
+          ? 'payment.failed'
+          : eventName === 'payment.authorized'
+            ? 'payment.created'
+            : undefined;
+
+    if (eventType && transaction) {
+      const { publishPaymentEvent } = await import('./payment-events.publisher');
+      const eventData: {
+        type: 'payment.created' | 'payment.captured' | 'payment.failed';
+        tenantId: string;
+        orderId: string;
+        paymentId?: string;
+        amount: number;
+        currency: string;
+        status: 'pending' | 'authorized' | 'captured' | 'failed' | 'refunded';
+        metadata?: Record<string, unknown>;
+      } = {
+        type: eventType as 'payment.created' | 'payment.captured' | 'payment.failed',
+        tenantId: transaction.tenantId,
+        orderId: transaction.orderId,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: newStatus,
+      };
+      if (paymentId) {
+        eventData.paymentId = paymentId;
+      }
+      if (transaction.metadata) {
+        eventData.metadata = transaction.metadata as Record<string, unknown>;
+      }
+      await publishPaymentEvent(eventData);
+    }
+  } catch (error) {
+    // Log error but don't fail the webhook
+    console.error('Failed to publish payment event', error);
+  }
 
   return res.status(StatusCodes.OK).json(successResponse({ processed: true }, 'Webhook processed'));
 };

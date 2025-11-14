@@ -23,6 +23,8 @@ export interface PresignedUrlInput {
   mimeType: string;
   category: FileCategory;
   expiresIn?: number;
+  relatedEntityType?: 'appointment' | 'doctor' | 'clinic' | 'patient';
+  relatedEntityId?: string;
 }
 
 const generateFileKey = (tenantId: string, category: FileCategory, fileName: string): string => {
@@ -64,7 +66,7 @@ export const generatePresignedUploadUrl = async (
   const expiresIn = input.expiresIn || 300; // Default 5 minutes
 
   // Create file record with "uploading" status
-  const fileRecord = new FileModel({
+  const fileRecordData: Record<string, unknown> = {
     tenantId,
     key,
     metadata: {
@@ -75,7 +77,15 @@ export const generatePresignedUploadUrl = async (
     },
     uploadedBy: new Types.ObjectId(userId),
     status: 'uploading',
-  });
+  };
+
+  // Link file to related entity if provided
+  if (input.relatedEntityType && input.relatedEntityId) {
+    fileRecordData.relatedEntityType = input.relatedEntityType;
+    fileRecordData.relatedEntityId = new Types.ObjectId(input.relatedEntityId);
+  }
+
+  const fileRecord = new FileModel(fileRecordData);
 
   await fileRecord.save();
 

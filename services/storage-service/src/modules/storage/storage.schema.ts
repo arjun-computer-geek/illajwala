@@ -30,6 +30,8 @@ export const getPresignedUrlSchema = z.object({
     'other',
   ]),
   expiresIn: z.coerce.number().int().positive().max(3600).default(300), // Max 1 hour, default 5 minutes
+  relatedEntityType: z.enum(['appointment', 'doctor', 'clinic', 'patient']).optional(),
+  relatedEntityId: z.string().optional(),
 });
 
 export const listFilesSchema = z.object({

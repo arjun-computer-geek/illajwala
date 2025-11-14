@@ -189,6 +189,85 @@ export const listAppointments = async ({
   return { items, total };
 };
 
+export const getAppointmentById = async (id: string, tenantId: string) => {
+  const appointment = await AppointmentModel.findOne({ _id: id, tenantId })
+    .populate('patient', 'name email phone')
+    .populate('doctor', 'name specialization consultationModes fee clinicLocations')
+    .populate('clinic', 'name slug timezone')
+    .lean();
+
+  if (!appointment) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: 'Appointment not found',
+    });
+  }
+
+  return appointment;
+};
+
+export const cancelAppointment = async (
+  id: string,
+  reason: string | undefined,
+  requester: Requester | undefined,
+  tenantId: string,
+) => {
+  const appointment = await AppointmentModel.findOne({ _id: id, tenantId });
+
+  if (!appointment) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: 'Appointment not found',
+    });
+  }
+
+  // Check permissions
+  if (requester?.role === 'patient' && appointment.patient.toString() !== requester.id) {
+    throw AppError.from({
+      statusCode: StatusCodes.FORBIDDEN,
+      message: 'You can only cancel your own appointments',
+    });
+  }
+
+  if (requester?.role === 'doctor' && appointment.doctor.toString() !== requester.id) {
+    throw AppError.from({
+      statusCode: StatusCodes.FORBIDDEN,
+      message: 'You can only cancel your own appointments',
+    });
+  }
+
+  // Don't allow canceling already cancelled or completed appointments
+  if (appointment.status === 'cancelled') {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: 'Appointment is already cancelled',
+    });
+  }
+
+  if (appointment.status === 'completed') {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: 'Cannot cancel a completed appointment',
+    });
+  }
+
+  appointment.status = 'cancelled';
+  if (reason) {
+    appointment.notes = [appointment.notes, `Cancellation reason: ${reason}`]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  await appointment.save();
+  await appointment.populate([
+    { path: 'patient', select: 'name email phone' },
+    { path: 'doctor', select: 'name specialization consultationModes fee clinicLocations' },
+    { path: 'clinic', select: 'name slug timezone' },
+  ]);
+
+  return appointment;
+};
+
 export const updateAppointmentStatus = async (
   id: string,
   payload: UpdateAppointmentStatusInput,
@@ -253,6 +332,36 @@ export const updateAppointmentStatus = async (
         ...(attachment.url !== undefined ? { url: attachment.url } : {}),
         ...(attachment.contentType !== undefined ? { contentType: attachment.contentType } : {}),
         ...(attachment.sizeInBytes !== undefined ? { sizeInBytes: attachment.sizeInBytes } : {}),
+      }));
+    }
+    if (payload.consultation.prescriptions) {
+      consultation.prescriptions = payload.consultation.prescriptions.map((prescription) => ({
+        medication: prescription.medication,
+        dosage: prescription.dosage,
+        frequency: prescription.frequency,
+        ...(prescription.duration !== undefined ? { duration: prescription.duration } : {}),
+        ...(prescription.instructions !== undefined
+          ? { instructions: prescription.instructions }
+          : {}),
+        ...(prescription.refills !== undefined ? { refills: prescription.refills } : {}),
+      }));
+    }
+    if (payload.consultation.referrals) {
+      consultation.referrals = payload.consultation.referrals.map((referral) => ({
+        type: referral.type,
+        reason: referral.reason,
+        ...(referral.specialty !== undefined ? { specialty: referral.specialty } : {}),
+        ...(referral.provider !== undefined ? { provider: referral.provider } : {}),
+        ...(referral.priority !== undefined ? { priority: referral.priority } : {}),
+        ...(referral.notes !== undefined ? { notes: referral.notes } : {}),
+      }));
+    }
+    if (payload.consultation.followUps) {
+      consultation.followUps = payload.consultation.followUps.map((followUp) => ({
+        action: followUp.action,
+        ...(followUp.scheduledAt !== undefined ? { scheduledAt: followUp.scheduledAt } : {}),
+        ...(followUp.priority !== undefined ? { priority: followUp.priority } : {}),
+        ...(followUp.completed !== undefined ? { completed: followUp.completed } : {}),
       }));
     }
   }

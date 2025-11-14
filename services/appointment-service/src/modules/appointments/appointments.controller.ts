@@ -10,9 +10,11 @@ import type {
 import {
   createAppointment,
   listAppointments,
+  getAppointmentById,
   updateAppointmentStatus,
   confirmAppointmentPayment,
   updateAppointmentPayment,
+  cancelAppointment,
 } from './appointment.service';
 import type { AuthenticatedRequest } from '../../utils';
 import { requireTenantId } from '../../utils';
@@ -74,6 +76,14 @@ export const handleListAppointments = catchAsync(
   },
 );
 
+export const handleGetAppointment = catchAsync<{ id: string }>(
+  async (req: AuthenticatedRequest<{ id: string }>, res: Response) => {
+    const tenantId = requireTenantId(req);
+    const appointment = await getAppointmentById(req.params.id, tenantId);
+    return res.json(successResponse(appointment));
+  },
+);
+
 export const handleUpdateAppointmentStatus = catchAsync<
   { id: string },
   unknown,
@@ -126,5 +136,16 @@ export const handleUpdateAppointmentPayment = catchAsync<
     const tenantId = requireTenantId(req);
     const appointment = await updateAppointmentPayment(req.params.id, req.body, req.user, tenantId);
     return res.json(successResponse(appointment, 'Appointment payment updated'));
+  },
+);
+
+export const handleCancelAppointment = catchAsync<{ id: string }, unknown, { reason?: string }>(
+  async (
+    req: AuthenticatedRequest<{ id: string }, unknown, { reason?: string }>,
+    res: Response,
+  ) => {
+    const tenantId = requireTenantId(req);
+    const appointment = await cancelAppointment(req.params.id, req.body.reason, req.user, tenantId);
+    return res.json(successResponse(appointment, 'Appointment cancelled'));
   },
 );

@@ -201,16 +201,50 @@ GET /api/appointments/:id
 Authorization: Bearer <token>
 ```
 
-#### Update Appointment
+#### Update Appointment Status
 
 ```http
-PUT /api/appointments/:id
+PATCH /api/appointments/:id/status
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "status": "completed",
-  "notes": "Patient follow-up required"
+  "notes": "Patient follow-up required",
+  "consultation": {
+    "startedAt": "2024-01-15T10:00:00Z",
+    "endedAt": "2024-01-15T10:30:00Z",
+    "notes": "Patient shows improvement",
+    "vitals": [
+      {
+        "label": "Blood Pressure",
+        "value": "120/80",
+        "unit": "mmHg"
+      }
+    ],
+    "prescriptions": [
+      {
+        "medication": "Paracetamol",
+        "dosage": "500mg",
+        "frequency": "Twice daily",
+        "duration": "5 days",
+        "instructions": "Take after meals"
+      }
+    ],
+    "referrals": [
+      {
+        "type": "lab",
+        "reason": "Blood test required",
+        "priority": "routine"
+      }
+    ],
+    "followUps": [
+      {
+        "action": "Follow-up appointment in 2 weeks",
+        "priority": "medium"
+      }
+    ]
+  }
 }
 ```
 

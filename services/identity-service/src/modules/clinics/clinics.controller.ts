@@ -6,23 +6,16 @@ import {
   catchAsync,
   AppError,
   type AuthenticatedRequest,
-  requireTenantId,
 } from '../../utils';
-import {
-  createClinic,
-  listClinics,
-  getClinicById,
-  updateClinic,
-  getClinicBySlug,
-} from './clinic.service';
+import { getServiceClients } from '../../config/service-clients';
 import type { CreateClinicInput, ListClinicQuery, UpdateClinicInput } from './clinic.schema';
+import type { Clinic } from '@illajwala/types';
 
 export const handleCreateClinic = catchAsync<Record<string, never>, unknown, CreateClinicInput>(
   async (
     req: AuthenticatedRequest<Record<string, never>, unknown, CreateClinicInput>,
     res: Response,
   ) => {
-    const tenantId = requireTenantId(req);
     if (req.user?.role !== 'admin') {
       throw AppError.from({
         statusCode: StatusCodes.FORBIDDEN,
@@ -30,57 +23,41 @@ export const handleCreateClinic = catchAsync<Record<string, never>, unknown, Cre
       });
     }
 
-    const clinic = await createClinic(tenantId, req.body);
-    return res
-      .status(StatusCodes.CREATED)
-      .json(successResponse(clinic.toObject?.() ?? clinic, 'Clinic created'));
+    const { provider } = getServiceClients(req);
+    const clinic = await provider.createClinic(req.body as Partial<Clinic>);
+    return res.status(StatusCodes.CREATED).json(successResponse(clinic, 'Clinic created'));
   },
 );
 
 export const handleListClinics = catchAsync(async (req: AuthenticatedRequest, res: Response) => {
-  const tenantId = requireTenantId(req);
   const query = req.query as ListClinicQuery;
-
-  const { items, total } = await listClinics(tenantId, query);
-  return res.json(
-    paginateResponse(
-      items.map((item) => item.toObject?.() ?? item),
-      total,
-      query.page ?? 1,
-      query.pageSize ?? 20,
-    ),
-  );
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 20;
+  const { provider } = getServiceClients(req);
+  const params: { page?: number; limit?: number; search?: string } = { page, limit: pageSize };
+  if (query.search) params.search = query.search;
+  const result = await provider.listClinics(params);
+  return res.json(paginateResponse(result.clinics, result.total, result.page, pageSize));
 });
 
 export const handleGetClinic = catchAsync<{ id: string }>(
   async (req: AuthenticatedRequest<{ id: string }>, res: Response) => {
-    const tenantId = requireTenantId(req);
-    const clinic = await getClinicById(tenantId, req.params.id);
-
-    if (!clinic) {
-      throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Clinic not found' });
-    }
-
-    return res.json(successResponse(clinic.toObject?.() ?? clinic));
+    const { provider } = getServiceClients(req);
+    const clinic = await provider.getClinic(req.params.id);
+    return res.json(successResponse(clinic));
   },
 );
 
 export const handleGetClinicBySlug = catchAsync<{ slug: string }>(
   async (req: AuthenticatedRequest<{ slug: string }>, res: Response) => {
-    const tenantId = requireTenantId(req);
-    const clinic = await getClinicBySlug(tenantId, req.params.slug);
-
-    if (!clinic) {
-      throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Clinic not found' });
-    }
-
-    return res.json(successResponse(clinic.toObject?.() ?? clinic));
+    const { provider } = getServiceClients(req);
+    const clinic = await provider.getClinicBySlug(req.params.slug);
+    return res.json(successResponse(clinic));
   },
 );
 
 export const handleUpdateClinic = catchAsync<{ id: string }, unknown, UpdateClinicInput>(
   async (req: AuthenticatedRequest<{ id: string }, unknown, UpdateClinicInput>, res: Response) => {
-    const tenantId = requireTenantId(req);
     if (req.user?.role !== 'admin') {
       throw AppError.from({
         statusCode: StatusCodes.FORBIDDEN,
@@ -88,11 +65,8 @@ export const handleUpdateClinic = catchAsync<{ id: string }, unknown, UpdateClin
       });
     }
 
-    const clinic = await updateClinic(tenantId, req.params.id, req.body);
-    if (!clinic) {
-      throw AppError.from({ statusCode: StatusCodes.NOT_FOUND, message: 'Clinic not found' });
-    }
-
-    return res.json(successResponse(clinic.toObject?.() ?? clinic, 'Clinic updated'));
+    const { provider } = getServiceClients(req);
+    const clinic = await provider.updateClinic(req.params.id, req.body as Partial<Clinic>);
+    return res.json(successResponse(clinic, 'Clinic updated'));
   },
 );

@@ -16,6 +16,8 @@
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
+    "@illajwala/event-bus": "workspace:*",
+    "@illajwala/service-client": "workspace:*",
     "@illajwala/shared": "workspace:*",
     "@illajwala/types": "workspace:*",
     "@illajwala/utils": "workspace:*",
