@@ -1,15 +1,16 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
-import { queryKeys } from "@/lib/query-keys";
-import type { Doctor } from "@/types/api";
-import { DoctorCard } from "@/components/doctor/doctor-card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { doctorsApi } from "@/lib/api/doctors";
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { queryKeys } from '@/lib/query-keys';
+import type { Doctor } from '@/types/api';
+import { DoctorCard } from '@/components/doctor/doctor-card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { doctorsApi } from '@/lib/api/doctors';
+import { SearchSort } from './search-sort';
 
 export const SearchResults = () => {
   const searchParams = useSearchParams();
@@ -24,6 +25,28 @@ export const SearchResults = () => {
 
   const doctors: Doctor[] = data?.data ?? [];
   const total = data?.meta?.total ?? doctors.length;
+  const sortParam = searchParams.get('sort') || 'relevance';
+
+  const sortedDoctors = useMemo(() => {
+    const sorted = [...doctors];
+    switch (sortParam) {
+      case 'name-asc':
+        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name-desc':
+        return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      case 'specialization':
+        return sorted.sort((a, b) =>
+          (a.specialization || '').localeCompare(b.specialization || ''),
+        );
+      case 'availability':
+        // Sort by availability - doctors with more availability first
+        // This is a placeholder - would need availability data from API
+        return sorted;
+      case 'relevance':
+      default:
+        return sorted;
+    }
+  }, [doctors, sortParam]);
 
   return (
     <div className="space-y-8">
@@ -31,12 +54,20 @@ export const SearchResults = () => {
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-foreground">Available doctors</h2>
           <p className="text-sm text-muted-foreground">
-            {total > 0 ? `${total} doctors match your filters.` : "Adjust filters to discover more doctors nearby."}
+            {total > 0
+              ? `${total} doctors match your filters.`
+              : 'Adjust filters to discover more doctors nearby.'}
           </p>
         </div>
-        <Badge variant="outline" className="rounded-full px-4 py-1 text-sm font-semibold shadow-[0_14px_34px_-24px_rgba(15,23,42,0.55)] dark:ring-primary/25">
-          {total} doctors
-        </Badge>
+        <div className="flex items-center gap-4">
+          {total > 0 && <SearchSort />}
+          <Badge
+            variant="outline"
+            className="rounded-full px-4 py-1 text-sm font-semibold shadow-[0_14px_34px_-24px_rgba(15,23,42,0.55)] dark:ring-primary/25"
+          >
+            {total} doctors
+          </Badge>
+        </div>
       </div>
 
       {isLoading ? (
@@ -47,11 +78,11 @@ export const SearchResults = () => {
         </div>
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
-      ) : doctors.length === 0 ? (
+      ) : sortedDoctors.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          {doctors.map((doctor) => (
+          {sortedDoctors.map((doctor) => (
             <DoctorCard key={doctor._id} doctor={doctor} />
           ))}
         </div>
@@ -71,11 +102,14 @@ const EmptyState = () => (
 
 const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
   <div className="rounded-3xl bg-destructive/5 p-10 text-center shadow-[0_20px_48px_-28px_rgba(220,38,38,0.45)] dark:bg-destructive/10 dark:shadow-[0_26px_58px_-30px_rgba(248,113,113,0.35)] dark:ring-1 dark:ring-destructive/40">
-    <h3 className="text-lg font-semibold text-destructive">We couldn&apos;t load doctors right now</h3>
-    <p className="mt-2 text-sm text-muted-foreground">Please check your connection and try again.</p>
+    <h3 className="text-lg font-semibold text-destructive">
+      We couldn&apos;t load doctors right now
+    </h3>
+    <p className="mt-2 text-sm text-muted-foreground">
+      Please check your connection and try again.
+    </p>
     <Button variant="secondary" className="mt-5 rounded-full px-6" onClick={onRetry}>
       Retry search
     </Button>
   </div>
 );
-

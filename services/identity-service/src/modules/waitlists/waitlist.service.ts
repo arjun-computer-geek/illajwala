@@ -1,15 +1,15 @@
-import { StatusCodes } from "http-status-codes";
-import { Types } from "mongoose";
+import { StatusCodes } from 'http-status-codes';
+import { Types } from 'mongoose';
 import {
   WaitlistModel,
   WaitlistPolicyModel,
   type WaitlistEntryDocument,
   type WaitlistPolicyDocument,
   type WaitlistStatus,
-} from "./waitlist.model";
-import { AppError } from "../../utils/app-error";
-import { publishWaitlistEvent } from "../events/waitlist-events.publisher";
-import { PatientModel, defaultNotificationPreferences } from "../patients/patient.model";
+} from './waitlist.model';
+import { AppError } from '../../utils/app-error';
+import { publishWaitlistEvent } from '../events/waitlist-events.publisher';
+import { PatientModel, defaultNotificationPreferences } from '../patients/patient.model';
 import type {
   PatientNotificationPreferences,
   WaitlistCancelledEvent,
@@ -18,9 +18,9 @@ import type {
   WaitlistInvitedEvent,
   WaitlistJoinedEvent,
   WaitlistPromotedEvent,
-} from "@illajwala/types";
+} from '@illajwala/types';
 
-const ACTIVE_STATUSES: WaitlistStatus[] = ["active", "invited"];
+const ACTIVE_STATUSES: WaitlistStatus[] = ['active', 'invited'];
 
 const DEFAULT_WAITLIST_POLICY = {
   maxQueueSize: 250,
@@ -51,20 +51,23 @@ type PatientContext = {
 };
 
 const mergeNotificationPreferences = (
-  preferences?: Partial<PatientNotificationPreferences> | null
+  preferences?: Partial<PatientNotificationPreferences> | null,
 ): PatientNotificationPreferences => ({
   ...defaultNotificationPreferences,
   ...(preferences ?? {}),
 });
 
-const getPatientContext = async (tenantId: string, patientId: ObjectIdLike): Promise<PatientContext | null> => {
+const getPatientContext = async (
+  tenantId: string,
+  patientId: ObjectIdLike,
+): Promise<PatientContext | null> => {
   const id = toObjectId(patientId);
   if (!id) {
     return null;
   }
 
   const patient = await PatientModel.findOne({ _id: id, tenantId })
-    .select("name email phone notificationPreferences")
+    .select('name email phone notificationPreferences')
     .lean<{
       name?: string;
       email?: string;
@@ -84,7 +87,10 @@ const getPatientContext = async (tenantId: string, patientId: ObjectIdLike): Pro
   };
 };
 
-const applyPatientContext = <T extends WaitlistEvent>(event: T, context: PatientContext | null): T => {
+const applyPatientContext = <T extends WaitlistEvent>(
+  event: T,
+  context: PatientContext | null,
+): T => {
   if (!context) {
     return event;
   }
@@ -99,12 +105,12 @@ const applyPatientContext = <T extends WaitlistEvent>(event: T, context: Patient
 };
 
 const createAuditEntry = (
-  action: WaitlistEntryDocument["audit"][number]["action"],
+  action: WaitlistEntryDocument['audit'][number]['action'],
   actorId?: ObjectIdLike,
   notes?: string,
-  metadata?: Record<string, unknown>
-): WaitlistEntryDocument["audit"][number] => {
-  const entry: WaitlistEntryDocument["audit"][number] = {
+  metadata?: Record<string, unknown>,
+): WaitlistEntryDocument['audit'][number] => {
+  const entry: WaitlistEntryDocument['audit'][number] = {
     action,
     createdAt: new Date(),
   };
@@ -133,7 +139,7 @@ const calculatePriorityScore = (): number => {
 
 const applyPolicyFallback = async (
   tenantId: string,
-  clinicId?: Types.ObjectId | null
+  clinicId?: Types.ObjectId | null,
 ): Promise<WaitlistPolicyDocument | null> => {
   const query: Record<string, unknown> = { tenantId };
   if (clinicId) {
@@ -191,7 +197,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
   if (!patientId) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Patient identifier is required for waitlist entries",
+      message: 'Patient identifier is required for waitlist entries',
     });
   }
 
@@ -214,7 +220,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
   if (existingActive) {
     throw AppError.from({
       statusCode: StatusCodes.CONFLICT,
-      message: "An active waitlist entry already exists for this patient",
+      message: 'An active waitlist entry already exists for this patient',
     });
   }
 
@@ -229,7 +235,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
   if (activeCount >= policy.maxQueueSize) {
     throw AppError.from({
       statusCode: StatusCodes.CONFLICT,
-      message: "The waitlist is currently at capacity",
+      message: 'The waitlist is currently at capacity',
     });
   }
 
@@ -237,7 +243,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
   if (!patientContext) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Patient not found",
+      message: 'Patient not found',
     });
   }
 
@@ -252,7 +258,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
     clinicId: clinicId ?? undefined,
     doctorId: doctorId ?? undefined,
     patientId,
-    status: "active",
+    status: 'active',
     priorityScore: calculatePriorityScore(),
     requestedWindow: input.requestedWindow
       ? {
@@ -264,12 +270,12 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
     notes: input.notes,
     metadata: input.metadata,
     expiresAt,
-    audit: [createAuditEntry("created", input.actorId, input.notes)],
+    audit: [createAuditEntry('created', input.actorId, input.notes)],
   });
 
   const waitlistJoinedEvent = applyPatientContext<WaitlistJoinedEvent>(
     {
-      type: "waitlist.joined",
+      type: 'waitlist.joined',
       tenantId,
       entryId: String(entry._id),
       clinicId: clinicId ? String(clinicId) : null,
@@ -277,7 +283,7 @@ export const enqueueWaitlistEntry = async (input: EnqueueWaitlistInput) => {
       patientId: String(patientId),
       priorityScore: entry.priorityScore,
     },
-    patientContext
+    patientContext,
   );
 
   if (
@@ -308,7 +314,7 @@ export type ListWaitlistOptions = {
   status?: WaitlistStatus | WaitlistStatus[];
   page?: number;
   pageSize?: number;
-  sortBy?: "priority" | "createdAt";
+  sortBy?: 'priority' | 'createdAt';
 };
 
 export const listWaitlistEntries = async ({
@@ -319,7 +325,7 @@ export const listWaitlistEntries = async ({
   patientId,
   page = 1,
   pageSize = 20,
-  sortBy = "priority",
+  sortBy = 'priority',
 }: ListWaitlistOptions) => {
   const filter: Record<string, unknown> = { tenantId };
 
@@ -341,7 +347,7 @@ export const listWaitlistEntries = async ({
   }
 
   const sort: Record<string, 1 | -1> =
-    sortBy === "createdAt"
+    sortBy === 'createdAt'
       ? { createdAt: 1 }
       : {
           priorityScore: 1,
@@ -386,7 +392,7 @@ export const updateWaitlistStatus = async ({
   if (!id) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Invalid waitlist entry identifier",
+      message: 'Invalid waitlist entry identifier',
     });
   }
 
@@ -394,7 +400,7 @@ export const updateWaitlistStatus = async ({
   if (!entry) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Waitlist entry not found",
+      message: 'Waitlist entry not found',
     });
   }
 
@@ -404,8 +410,8 @@ export const updateWaitlistStatus = async ({
 
   const previousStatus = entry.status;
   entry.status = status;
-  entry.audit.push(createAuditEntry("status-change", actorId, notes, { status }));
-  if (notes && status !== "cancelled") {
+  entry.audit.push(createAuditEntry('status-change', actorId, notes, { status }));
+  if (notes && status !== 'cancelled') {
     entry.notes = notes;
   }
 
@@ -414,17 +420,17 @@ export const updateWaitlistStatus = async ({
   const patientContext = await getPatientContext(tenantId, entry.patientId);
 
   if (previousStatus !== status) {
-    if (status === "cancelled") {
+    if (status === 'cancelled') {
       const event = applyPatientContext<WaitlistCancelledEvent>(
         {
-          type: "waitlist.cancelled",
+          type: 'waitlist.cancelled',
           tenantId,
           entryId: String(entry._id),
           clinicId: entry.clinicId ? String(entry.clinicId) : null,
           doctorId: entry.doctorId ? String(entry.doctorId) : null,
           patientId: String(entry.patientId),
         },
-        patientContext
+        patientContext,
       );
 
       if (notes) {
@@ -432,24 +438,24 @@ export const updateWaitlistStatus = async ({
       }
 
       await publishWaitlistEvent(event);
-    } else if (status === "expired") {
+    } else if (status === 'expired') {
       const event = applyPatientContext<WaitlistExpiredEvent>(
         {
-          type: "waitlist.expired",
+          type: 'waitlist.expired',
           tenantId,
           entryId: String(entry._id),
           clinicId: entry.clinicId ? String(entry.clinicId) : null,
           doctorId: entry.doctorId ? String(entry.doctorId) : null,
           patientId: String(entry.patientId),
         },
-        patientContext
+        patientContext,
       );
 
       await publishWaitlistEvent(event);
-    } else if (status === "invited") {
+    } else if (status === 'invited') {
       const event = applyPatientContext<WaitlistInvitedEvent>(
         {
-          type: "waitlist.invited",
+          type: 'waitlist.invited',
           tenantId,
           entryId: String(entry._id),
           clinicId: entry.clinicId ? String(entry.clinicId) : null,
@@ -457,7 +463,7 @@ export const updateWaitlistStatus = async ({
           patientId: String(entry.patientId),
           respondBy: entry.expiresAt ? entry.expiresAt.toISOString() : null,
         },
-        patientContext
+        patientContext,
       );
 
       await publishWaitlistEvent(event);
@@ -488,7 +494,7 @@ export const markWaitlistEntryPromoted = async ({
   if (!id || !appointmentObjectId) {
     throw AppError.from({
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Invalid identifiers supplied for promotion",
+      message: 'Invalid identifiers supplied for promotion',
     });
   }
 
@@ -496,20 +502,22 @@ export const markWaitlistEntryPromoted = async ({
   if (!entry) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Waitlist entry not found",
+      message: 'Waitlist entry not found',
     });
   }
 
   const patientContext = await getPatientContext(tenantId, entry.patientId);
 
-  entry.status = "promoted";
+  entry.status = 'promoted';
   entry.promotedAppointmentId = appointmentObjectId;
-  entry.audit.push(createAuditEntry("promotion", actorId, notes, { appointmentId: appointmentObjectId }));
+  entry.audit.push(
+    createAuditEntry('promotion', actorId, notes, { appointmentId: appointmentObjectId }),
+  );
   await entry.save();
 
   const event = applyPatientContext<WaitlistPromotedEvent>(
     {
-      type: "waitlist.promoted",
+      type: 'waitlist.promoted',
       tenantId,
       entryId: String(entry._id),
       clinicId: entry.clinicId ? String(entry.clinicId) : null,
@@ -517,7 +525,7 @@ export const markWaitlistEntryPromoted = async ({
       patientId: String(entry.patientId),
       appointmentId: String(appointmentObjectId),
     },
-    patientContext
+    patientContext,
   );
 
   await publishWaitlistEvent(event);
@@ -528,7 +536,7 @@ export const markWaitlistEntryPromoted = async ({
 export const expireStaleWaitlistEntries = async (tenantId: string, referenceDate = new Date()) => {
   const expiringEntries = await WaitlistModel.find({
     tenantId,
-    status: { $in: ["active", "invited"] },
+    status: { $in: ['active', 'invited'] },
     expiresAt: { $lte: referenceDate },
   }).lean();
 
@@ -541,9 +549,9 @@ export const expireStaleWaitlistEntries = async (tenantId: string, referenceDate
   await WaitlistModel.updateMany(
     { _id: { $in: ids } },
     {
-      $set: { status: "expired" },
-      $push: { audit: createAuditEntry("expiration") },
-    }
+      $set: { status: 'expired' },
+      $push: { audit: createAuditEntry('expiration') },
+    },
   );
 
   await Promise.all(
@@ -551,18 +559,18 @@ export const expireStaleWaitlistEntries = async (tenantId: string, referenceDate
       const patientContext = await getPatientContext(tenantId, entry.patientId as ObjectIdLike);
       const event = applyPatientContext<WaitlistExpiredEvent>(
         {
-          type: "waitlist.expired",
+          type: 'waitlist.expired',
           tenantId,
           entryId: String(entry._id),
           clinicId: entry.clinicId ? String(entry.clinicId) : null,
           doctorId: entry.doctorId ? String(entry.doctorId) : null,
           patientId: String(entry.patientId),
         },
-        patientContext
+        patientContext,
       );
 
       await publishWaitlistEvent(event);
-    })
+    }),
   );
 
   return ids.length;
@@ -608,7 +616,7 @@ export const upsertWaitlistPolicy = async (input: UpsertWaitlistPolicyInput) => 
         clinicId: clinicId ?? null,
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 
   return doc;
@@ -626,3 +634,278 @@ export const getWaitlistPolicy = async (tenantId: string, clinicId?: ObjectIdLik
   });
 };
 
+export type BulkUpdateWaitlistStatusInput = {
+  tenantId: string;
+  entryIds: ObjectIdLike[];
+  status: WaitlistStatus;
+  actorId?: ObjectIdLike;
+  notes?: string;
+};
+
+export const bulkUpdateWaitlistStatus = async ({
+  tenantId,
+  entryIds,
+  status,
+  actorId,
+  notes,
+}: BulkUpdateWaitlistStatusInput) => {
+  const ids = entryIds
+    .map((id) => toObjectId(id))
+    .filter((id): id is Types.ObjectId => id !== undefined);
+
+  if (ids.length === 0) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: 'No valid waitlist entry identifiers provided',
+    });
+  }
+
+  const entries = await WaitlistModel.find({
+    _id: { $in: ids },
+    tenantId,
+  });
+
+  if (entries.length === 0) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: 'No waitlist entries found',
+    });
+  }
+
+  const updateResult = await WaitlistModel.updateMany(
+    { _id: { $in: ids }, tenantId },
+    {
+      $set: { status },
+      $push: {
+        audit: createAuditEntry('status-change', actorId, notes, { status, bulkUpdate: true }),
+      },
+    },
+  );
+
+  return {
+    matched: updateResult.matchedCount,
+    modified: updateResult.modifiedCount,
+  };
+};
+
+export type UpdateWaitlistPriorityInput = {
+  tenantId: string;
+  entryId: ObjectIdLike;
+  priorityScore: number;
+  actorId?: ObjectIdLike;
+  notes?: string;
+};
+
+export const updateWaitlistPriority = async ({
+  tenantId,
+  entryId,
+  priorityScore,
+  actorId,
+  notes,
+}: UpdateWaitlistPriorityInput) => {
+  const id = toObjectId(entryId);
+  if (!id) {
+    throw AppError.from({
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: 'Invalid waitlist entry identifier',
+    });
+  }
+
+  const entry = await WaitlistModel.findOne({ _id: id, tenantId });
+  if (!entry) {
+    throw AppError.from({
+      statusCode: StatusCodes.NOT_FOUND,
+      message: 'Waitlist entry not found',
+    });
+  }
+
+  const previousPriority = entry.priorityScore;
+  entry.priorityScore = priorityScore;
+  entry.audit.push(
+    createAuditEntry('updated', actorId, notes, {
+      priorityScore: { from: previousPriority, to: priorityScore },
+    }),
+  );
+
+  await entry.save();
+
+  return entry;
+};
+
+export type WaitlistAnalyticsInput = {
+  tenantId: string;
+  doctorId?: ObjectIdLike;
+  clinicId?: ObjectIdLike;
+  startDate?: Date;
+  endDate?: Date;
+};
+
+export type WaitlistAnalytics = {
+  totalEntries: number;
+  byStatus: Record<WaitlistStatus, number>;
+  averageWaitTime: number; // in hours
+  averageTimeToPromotion: number; // in hours
+  promotionRate: number; // percentage
+  expiryRate: number; // percentage
+  cancellationRate: number; // percentage
+  currentQueueSize: number;
+  peakQueueSize: number;
+  entriesByDay: Array<{ date: string; count: number }>;
+  statusTransitions: Array<{ from: WaitlistStatus; to: WaitlistStatus; count: number }>;
+};
+
+export const getWaitlistAnalytics = async ({
+  tenantId,
+  doctorId,
+  clinicId,
+  startDate,
+  endDate,
+}: WaitlistAnalyticsInput): Promise<WaitlistAnalytics> => {
+  const doctorIdObj = toObjectId(doctorId);
+  const clinicIdObj = toObjectId(clinicId);
+
+  const matchFilter: Record<string, unknown> = { tenantId };
+  if (doctorIdObj) {
+    matchFilter.doctorId = doctorIdObj;
+  }
+  if (clinicIdObj) {
+    matchFilter.clinicId = clinicIdObj;
+  }
+  if (startDate || endDate) {
+    const dateFilter: Record<string, Date> = {};
+    if (startDate) {
+      dateFilter.$gte = startDate;
+    }
+    if (endDate) {
+      dateFilter.$lte = endDate;
+    }
+    matchFilter.createdAt = dateFilter;
+  }
+
+  const allEntries = await WaitlistModel.find(matchFilter).lean();
+
+  const totalEntries = allEntries.length;
+
+  const byStatus: Record<WaitlistStatus, number> = {
+    active: 0,
+    invited: 0,
+    promoted: 0,
+    expired: 0,
+    cancelled: 0,
+  };
+
+  let totalWaitTime = 0;
+  let waitTimeCount = 0;
+  let totalPromotionTime = 0;
+  let promotionCount = 0;
+
+  const currentDate = new Date();
+  const entriesByDayMap = new Map<string, number>();
+  const statusTransitionsMap = new Map<string, number>();
+
+  for (const entry of allEntries) {
+    byStatus[entry.status] = (byStatus[entry.status] || 0) + 1;
+
+    const createdAt = new Date(entry.createdAt);
+    const isoString = createdAt.toISOString();
+    const dayKey = isoString.split('T')[0];
+    if (dayKey) {
+      entriesByDayMap.set(dayKey, (entriesByDayMap.get(dayKey) || 0) + 1);
+    }
+
+    const entryAudit = entry.audit;
+    if (entryAudit && Array.isArray(entryAudit) && entryAudit.length > 0) {
+      const sortedAudit = [...entryAudit].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+
+      for (let i = 0; i < sortedAudit.length; i++) {
+        const audit = sortedAudit[i];
+        if (
+          audit &&
+          audit.action === 'status-change' &&
+          audit.metadata &&
+          typeof audit.metadata === 'object'
+        ) {
+          const metadata = audit.metadata as { status?: { from?: string; to?: string } };
+          if (metadata.status?.from && metadata.status?.to) {
+            const transitionKey = `${metadata.status.from}->${metadata.status.to}`;
+            statusTransitionsMap.set(
+              transitionKey,
+              (statusTransitionsMap.get(transitionKey) || 0) + 1,
+            );
+          }
+        }
+      }
+
+      const promotionAudit = sortedAudit.find((a) => a && a.action === 'promotion');
+      if (promotionAudit && promotionAudit.createdAt) {
+        const promotionTime = new Date(promotionAudit.createdAt).getTime() - createdAt.getTime();
+        totalPromotionTime += promotionTime;
+        promotionCount++;
+      }
+    }
+
+    if (entry.status === 'active' || entry.status === 'invited') {
+      const waitTime = currentDate.getTime() - createdAt.getTime();
+      totalWaitTime += waitTime;
+      waitTimeCount++;
+    }
+  }
+
+  const entriesByDay = Array.from(entriesByDayMap.entries())
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const statusTransitions = Array.from(statusTransitionsMap.entries())
+    .map(([key, count]) => {
+      const parts = key.split('->');
+      if (parts.length === 2 && parts[0] && parts[1]) {
+        return { from: parts[0] as WaitlistStatus, to: parts[1] as WaitlistStatus, count };
+      }
+      return null;
+    })
+    .filter((t): t is { from: WaitlistStatus; to: WaitlistStatus; count: number } => t !== null);
+
+  const promoted = byStatus.promoted;
+  const expired = byStatus.expired;
+  const cancelled = byStatus.cancelled;
+  const completed = promoted + expired + cancelled;
+
+  const averageWaitTime = waitTimeCount > 0 ? totalWaitTime / waitTimeCount / (1000 * 60 * 60) : 0;
+  const averageTimeToPromotion =
+    promotionCount > 0 ? totalPromotionTime / promotionCount / (1000 * 60 * 60) : 0;
+  const promotionRate = completed > 0 ? (promoted / completed) * 100 : 0;
+  const expiryRate = completed > 0 ? (expired / completed) * 100 : 0;
+  const cancellationRate = completed > 0 ? (cancelled / completed) * 100 : 0;
+
+  const currentQueueSize = byStatus.active + byStatus.invited;
+
+  const peakQueueSize = Math.max(
+    ...entriesByDay.map((day) => {
+      const dayDate = new Date(day.date);
+      return allEntries.filter(
+        (e) =>
+          new Date(e.createdAt) <= dayDate &&
+          (new Date(e.updatedAt || e.createdAt) >= dayDate ||
+            e.status === 'active' ||
+            e.status === 'invited'),
+      ).length;
+    }),
+    currentQueueSize,
+  );
+
+  return {
+    totalEntries,
+    byStatus,
+    averageWaitTime,
+    averageTimeToPromotion,
+    promotionRate,
+    expiryRate,
+    cancellationRate,
+    currentQueueSize,
+    peakQueueSize,
+    entriesByDay,
+    statusTransitions,
+  };
+};

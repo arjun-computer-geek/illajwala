@@ -1,55 +1,78 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Skeleton } from "@illajwala/ui";
-import { Activity, CalendarClock, ClipboardCheck } from "lucide-react";
-import { AvailabilityPlanner } from "../../components/availability/availability-planner";
-import { useDoctorAuth } from "../../hooks/use-auth";
-import { DoctorShell } from "../../components/layout/doctor-shell";
-import { ConsultationQueue } from "../../components/dashboard/consultation-queue";
-import { WaitlistConsole } from "../../components/dashboard/waitlist-console";
+import { useEffect, lazy, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Skeleton,
+} from '@illajwala/ui';
+import { Activity, CalendarClock, ClipboardCheck } from 'lucide-react';
+import { useDoctorAuth } from '../../hooks/use-auth';
+import { DoctorShell } from '../../components/layout/doctor-shell';
+
+// Lazy load heavy components for better initial page load
+const AvailabilityPlanner = lazy(() =>
+  import('../../components/availability/availability-planner').then((mod) => ({
+    default: mod.AvailabilityPlanner,
+  })),
+);
+const ConsultationQueue = lazy(() =>
+  import('../../components/dashboard/consultation-queue').then((mod) => ({
+    default: mod.ConsultationQueue,
+  })),
+);
+const WaitlistConsole = lazy(() =>
+  import('../../components/dashboard/waitlist-console').then((mod) => ({
+    default: mod.WaitlistConsole,
+  })),
+);
 
 const dashboardHighlights = [
   {
-    title: "Same-day confirmations",
-    value: "92%",
-    description: "of patient requests auto-confirmed",
+    title: 'Same-day confirmations',
+    value: '92%',
+    description: 'of patient requests auto-confirmed',
     icon: CalendarClock,
   },
   {
-    title: "No-show rate",
-    value: "4.1%",
-    description: "tracked from patient nudges",
+    title: 'No-show rate',
+    value: '4.1%',
+    description: 'tracked from patient nudges',
     icon: Activity,
   },
   {
-    title: "Pending approvals",
-    value: "3",
-    description: "staff invites awaiting verification",
+    title: 'Pending approvals',
+    value: '3',
+    description: 'staff invites awaiting verification',
     icon: ClipboardCheck,
   },
 ];
 
 const clinicTasks = [
   {
-    title: "Upload clinic signage",
-    description: "Add your branding assets for visit reminders.",
-    action: "Upload now",
-    href: "#",
+    title: 'Upload clinic signage',
+    description: 'Add your branding assets for visit reminders.',
+    action: 'Upload now',
+    href: '#',
   },
   {
-    title: "Set telehealth follow-ups",
-    description: "Define default buffer time for remote consults.",
-    action: "Configure",
-    href: "#",
+    title: 'Set telehealth follow-ups',
+    description: 'Define default buffer time for remote consults.',
+    action: 'Configure',
+    href: '#',
   },
   {
-    title: "Review payouts",
-    description: "Latest Razorpay reconciliation is ready for review.",
-    action: "Open ledger",
-    href: "#",
+    title: 'Review payouts',
+    description: 'Latest Razorpay reconciliation is ready for review.',
+    action: 'Open ledger',
+    href: '#',
   },
 ];
 
@@ -77,7 +100,7 @@ export default function DoctorDashboardPage() {
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
-      router.replace("/auth/login?redirectTo=/dashboard");
+      router.replace('/auth/login?redirectTo=/dashboard');
     }
   }, [hydrated, isAuthenticated, router]);
 
@@ -94,13 +117,13 @@ export default function DoctorDashboardPage() {
   }
 
   const clinic = doctor.clinicLocations?.[0];
-  const doctorId = doctor._id ?? "unknown";
-  const clinicLabel = clinic?.name ?? "Primary clinic";
+  const doctorId = doctor._id ?? 'unknown';
+  const clinicLabel = clinic?.name ?? 'Primary clinic';
   const clinicLocation = clinic?.city ? `${clinicLabel} · ${clinic.city}` : clinicLabel;
 
   return (
     <DoctorShell
-      title={`Good day, Dr. ${doctor.name.split(" ")[0]}`}
+      title={`Good day, Dr. ${doctor.name.split(' ')[0]}`}
       description="Publish availability, track visits, and stay on top of tasks."
       doctorName={doctor.name}
       clinicName={clinic?.name ?? clinic?.city ?? null}
@@ -176,11 +199,17 @@ export default function DoctorDashboardPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
+        <Suspense fallback={<Skeleton className="h-[520px] w-full rounded-lg" />}>
+          <AvailabilityPlanner doctorId={doctorId} clinicName={clinic?.name} />
+        </Suspense>
 
         <div className="space-y-6">
-          <WaitlistConsole />
-          <ConsultationQueue />
+          <Suspense fallback={<Skeleton className="h-64 w-full rounded-lg" />}>
+            <WaitlistConsole />
+          </Suspense>
+          <Suspense fallback={<Skeleton className="h-64 w-full rounded-lg" />}>
+            <ConsultationQueue />
+          </Suspense>
 
           <Card className="rounded-lg border border-border bg-card shadow-sm">
             <CardHeader className="pb-3">
@@ -190,7 +219,10 @@ export default function DoctorDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {clinicTasks.map((task) => (
-                <div key={task.title} className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/40 px-4 py-3 text-sm">
+                <div
+                  key={task.title}
+                  className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/40 px-4 py-3 text-sm"
+                >
                   <div>
                     <p className="font-medium text-foreground">{task.title}</p>
                     <p className="text-xs text-muted-foreground">{task.description}</p>
@@ -207,4 +239,3 @@ export default function DoctorDashboardPage() {
     </DoctorShell>
   );
 }
-

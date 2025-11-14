@@ -22,6 +22,8 @@ cd infra
 docker compose up -d
 ```
 
+> 📖 For detailed Docker Compose documentation, see [infra/README.md](../infra/README.md)
+
 The stack provisions:
 
 - **MongoDB** at `mongodb://root:root@localhost:27017/` with replica set `rs0`
@@ -48,7 +50,17 @@ This command is idempotent—rerunning it will no-op once the replica set is onl
 docker compose ps
 ```
 
-All containers should report `healthy`. Mailhog’s UI is reachable at <http://localhost:8025>, and MongoDB should respond to `mongosh --eval "db.runCommand({ ping: 1 })"`.
+All containers should report `(healthy)` status. Health checks run automatically:
+
+- **MongoDB**: Ping check every 10 seconds
+- **Redis**: Ping check every 10 seconds
+- **Mailhog**: HTTP check every 10 seconds
+
+You can also check service health:
+
+- **Mailhog UI**: http://localhost:8025
+- **MongoDB**: `mongosh --eval "db.runCommand({ ping: 1 })"`
+- **Identity Service**: `curl http://localhost:4000/health` (returns database and Redis status)
 
 ## 2. Configure environment variables
 
@@ -125,6 +137,7 @@ pnpm validate:env
 ```
 
 This checks that:
+
 - Required environment variables are configured
 - Docker services are accessible
 - Database connections are valid
@@ -174,4 +187,3 @@ pnpm seed
 ---
 
 For more detailed information, see [Development Guide](./DEVELOPMENT.md) and [Contributing Guide](./CONTRIBUTING.md).
-

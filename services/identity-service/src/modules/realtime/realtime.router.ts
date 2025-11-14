@@ -1,19 +1,20 @@
-"use strict";
+'use strict';
 
-import { Router } from "express";
-import type { Response } from "express";
-import { randomUUID } from "crypto";
-import { requireAuth } from "../../middlewares/auth";
-import { getOpsMetricsSummary } from "../analytics/analytics.service";
-import { AppointmentModel } from "../appointments/appointment.model";
-import type { AuthenticatedRequest } from "../../middlewares/auth";
-import { requireTenantId } from "../../utils/tenant";
+import { Router } from 'express';
+import type { Response } from 'express';
+import { randomUUID } from 'crypto';
+import { requireAuth } from '../../middlewares/auth';
+import { getOpsMetricsSummary } from '../analytics/analytics.service';
+import { AppointmentModel } from '../appointments/appointment.model';
+import { WaitlistModel } from '../waitlists/waitlist.model';
+import type { AuthenticatedRequest } from '../../middlewares/auth';
+import { requireTenantId } from '../../utils/tenant';
 
 const setupSse = (res: Response) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   (res as Response & { flushHeaders?: () => void }).flushHeaders?.();
 
   return (data: unknown) => {
@@ -50,7 +51,7 @@ const registerAppointmentStream = ({
   const connectionId = randomUUID();
   const heartbeat = () => {
     sendEvent({
-      type: "heartbeat",
+      type: 'heartbeat',
       connectionId,
     });
   };
@@ -79,7 +80,7 @@ const registerAppointmentStream = ({
           fingerprints.set(id, nextFingerprint);
           statusSnapshot.set(id, appointment.status ?? null);
           sendEvent({
-            type: "appointment.created",
+            type: 'appointment.created',
             appointment,
           });
           continue;
@@ -90,8 +91,8 @@ const registerAppointmentStream = ({
           statusSnapshot.set(id, appointment.status ?? null);
           const eventType =
             previousStatus && previousStatus !== appointment.status
-              ? "appointment.status.changed"
-              : "appointment.updated";
+              ? 'appointment.status.changed'
+              : 'appointment.updated';
           sendEvent({
             type: eventType,
             appointment,
@@ -104,17 +105,16 @@ const registerAppointmentStream = ({
           fingerprints.delete(storedId);
           statusSnapshot.delete(storedId);
           sendEvent({
-            type: "appointment.removed",
+            type: 'appointment.removed',
             appointmentId: storedId,
           });
         }
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("[realtime] Failed to refresh appointment stream", error);
+      console.error('[realtime] Failed to refresh appointment stream', error);
       sendEvent({
-        type: "error",
-        message: "Unable to refresh appointment feed",
+        type: 'error',
+        message: 'Unable to refresh appointment feed',
       });
     } finally {
       isRefreshing = false;
@@ -142,12 +142,12 @@ const registerAppointmentStream = ({
 
 export const realtimeRouter: Router = Router();
 
-realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) => {
+realtimeRouter.get('/dashboard', requireAuth(['admin']), async (req, res, next) => {
   try {
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
     const connectionId = randomUUID();
@@ -160,14 +160,14 @@ realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) 
     const publishMetrics = async () => {
       const metrics = await getOpsMetricsSummary(tenantId);
       sendEvent({
-        type: "metrics.updated",
+        type: 'metrics.updated',
         metrics,
       });
     };
 
     const heartbeat = () => {
       sendEvent({
-        type: "heartbeat",
+        type: 'heartbeat',
         connectionId,
       });
     };
@@ -177,8 +177,7 @@ realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) 
 
     const metricsInterval = setInterval(() => {
       publishMetrics().catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error("[realtime] Failed to refresh ops metrics", error);
+        console.error('[realtime] Failed to refresh ops metrics', error);
       });
     }, 15_000);
 
@@ -186,7 +185,7 @@ realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) 
       heartbeat();
     }, 30_000);
 
-    req.on("close", () => {
+    req.on('close', () => {
       clearInterval(metricsInterval);
       clearInterval(heartbeatInterval);
       res.end();
@@ -196,82 +195,217 @@ realtimeRouter.get("/dashboard", requireAuth(["admin"]), async (req, res, next) 
   }
 });
 
-realtimeRouter.get("/consultations", requireAuth(["doctor"]), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const doctorId = req.user?.id;
+realtimeRouter.get(
+  '/consultations',
+  requireAuth(['doctor']),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const doctorId = req.user?.id;
 
-    if (!doctorId) {
-      throw new Error("Doctor context missing");
+      if (!doctorId) {
+        throw new Error('Doctor context missing');
+      }
+
+      const tenantId = req.user?.tenantId;
+
+      if (!tenantId) {
+        throw new Error('Tenant context missing');
+      }
+
+      const cleanup = registerAppointmentStream({
+        res,
+        fetchAppointments: async () => {
+          const results = await AppointmentModel.find({ tenantId, doctor: doctorId })
+            .populate('patient', 'name email phone')
+            .populate('doctor', 'name specialization consultationModes fee clinicLocations')
+            .sort({ scheduledAt: 1 })
+            .limit(100)
+            .lean({ getters: true });
+
+          return results.map((appointment) => serializeAppointment(appointment));
+        },
+        onClose: () => {
+          res.end();
+        },
+      });
+
+      req.on('close', () => {
+        cleanup();
+      });
+    } catch (error) {
+      next(error);
     }
+  },
+);
 
-    const tenantId = req.user?.tenantId;
+realtimeRouter.get(
+  '/appointments',
+  requireAuth(['patient']),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const patientId = req.user?.id;
 
-    if (!tenantId) {
-      throw new Error("Tenant context missing");
+      if (!patientId) {
+        throw new Error('Patient context missing');
+      }
+
+      const tenantId = req.user?.tenantId;
+
+      if (!tenantId) {
+        throw new Error('Tenant context missing');
+      }
+
+      const cleanup = registerAppointmentStream({
+        res,
+        fetchAppointments: async () => {
+          const results = await AppointmentModel.find({ tenantId, patient: patientId })
+            .populate('patient', 'name email phone')
+            .populate('doctor', 'name specialization consultationModes fee clinicLocations')
+            .sort({ scheduledAt: 1 })
+            .limit(100)
+            .lean({ getters: true });
+
+          return results.map((appointment) => serializeAppointment(appointment));
+        },
+        onClose: () => {
+          res.end();
+        },
+      });
+
+      req.on('close', () => {
+        cleanup();
+      });
+    } catch (error) {
+      next(error);
     }
+  },
+);
 
-    const cleanup = registerAppointmentStream({
-      res,
-      fetchAppointments: async () => {
-        const results = await AppointmentModel.find({ tenantId, doctor: doctorId })
-          .populate("patient", "name email phone")
-          .populate("doctor", "name specialization consultationModes fee clinicLocations")
-          .sort({ scheduledAt: 1 })
-          .limit(100)
-          .lean({ getters: true });
+realtimeRouter.get(
+  '/waitlists',
+  requireAuth(['doctor']),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const doctorId = req.user?.id;
 
-        return results.map((appointment) => serializeAppointment(appointment));
-      },
-      onClose: () => {
+      if (!doctorId) {
+        throw new Error('Doctor context missing');
+      }
+
+      const tenantId = req.user?.tenantId;
+
+      if (!tenantId) {
+        throw new Error('Tenant context missing');
+      }
+
+      const sendEvent = setupSse(res);
+      const connectionId = randomUUID();
+      const heartbeat = () => {
+        sendEvent({
+          type: 'heartbeat',
+          connectionId,
+        });
+      };
+
+      const fingerprints = new Map<string, string>();
+      const statusSnapshot = new Map<string, string>();
+      let isClosed = false;
+      let isRefreshing = false;
+
+      const refreshWaitlists = async () => {
+        if (isClosed || isRefreshing) {
+          return;
+        }
+        isRefreshing = true;
+        try {
+          const waitlists = await WaitlistModel.find({
+            tenantId,
+            doctorId,
+          })
+            .populate('patient', 'name email phone')
+            .populate('doctor', 'name specialization')
+            .populate('clinic', 'name slug')
+            .sort({ priorityScore: -1, createdAt: 1 })
+            .limit(100)
+            .lean({ getters: true });
+
+          const nextMap = new Map<string, any>();
+          for (const waitlist of waitlists) {
+            const id = String(waitlist._id);
+            nextMap.set(id, waitlist);
+            const nextFingerprint = JSON.stringify({
+              status: waitlist.status,
+              priorityScore: waitlist.priorityScore,
+              updatedAt: waitlist.updatedAt,
+              expiresAt: waitlist.expiresAt,
+            });
+            const previousFingerprint = fingerprints.get(id);
+            const previousStatus = statusSnapshot.get(id);
+
+            if (!previousFingerprint) {
+              fingerprints.set(id, nextFingerprint);
+              statusSnapshot.set(id, waitlist.status ?? null);
+              sendEvent({
+                type: 'waitlist.created',
+                waitlist,
+              });
+              continue;
+            }
+
+            if (previousFingerprint !== nextFingerprint) {
+              fingerprints.set(id, nextFingerprint);
+              statusSnapshot.set(id, waitlist.status ?? null);
+              const eventType =
+                previousStatus && previousStatus !== waitlist.status
+                  ? 'waitlist.status.changed'
+                  : 'waitlist.updated';
+              sendEvent({
+                type: eventType,
+                waitlist,
+              });
+            }
+          }
+
+          for (const [storedId] of fingerprints) {
+            if (!nextMap.has(storedId)) {
+              fingerprints.delete(storedId);
+              statusSnapshot.delete(storedId);
+              sendEvent({
+                type: 'waitlist.removed',
+                waitlistId: storedId,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('[realtime] Failed to refresh waitlist stream', error);
+          sendEvent({
+            type: 'error',
+            message: 'Unable to refresh waitlist feed',
+          });
+        } finally {
+          isRefreshing = false;
+        }
+      };
+
+      const refreshInterval = setInterval(() => {
+        void refreshWaitlists();
+      }, 10_000);
+
+      const heartbeatInterval = setInterval(() => {
+        heartbeat();
+      }, 25_000);
+
+      void refreshWaitlists();
+      heartbeat();
+
+      req.on('close', () => {
+        isClosed = true;
+        clearInterval(refreshInterval);
+        clearInterval(heartbeatInterval);
         res.end();
-      },
-    });
-
-    req.on("close", () => {
-      cleanup();
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-realtimeRouter.get("/appointments", requireAuth(["patient"]), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const patientId = req.user?.id;
-
-    if (!patientId) {
-      throw new Error("Patient context missing");
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const tenantId = req.user?.tenantId;
-
-    if (!tenantId) {
-      throw new Error("Tenant context missing");
-    }
-
-    const cleanup = registerAppointmentStream({
-      res,
-      fetchAppointments: async () => {
-        const results = await AppointmentModel.find({ tenantId, patient: patientId })
-          .populate("patient", "name email phone")
-          .populate("doctor", "name specialization consultationModes fee clinicLocations")
-          .sort({ scheduledAt: 1 })
-          .limit(100)
-          .lean({ getters: true });
-
-        return results.map((appointment) => serializeAppointment(appointment));
-      },
-      onClose: () => {
-        res.end();
-      },
-    });
-
-    req.on("close", () => {
-      cleanup();
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-
+  },
+);

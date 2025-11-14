@@ -4,8 +4,7 @@ import { DoctorModel } from '../modules/doctors/doctor.model';
 import { PatientModel } from '../modules/patients/patient.model';
 import { AppointmentModel } from '../modules/appointments/appointment.model';
 import { AdminModel } from '../modules/admins/admin.model';
-import { WaitlistEntryModel } from '../modules/waitlists/waitlist-entry.model';
-import { NotificationModel } from '../modules/notifications/notification.model';
+import { WaitlistModel } from '../modules/waitlists/waitlist.model';
 
 /**
  * Reset the database by dropping all collections
@@ -33,10 +32,7 @@ const resetDatabase = async () => {
     await AdminModel.collection.drop().catch(() => {
       // Collection might not exist
     });
-    await WaitlistEntryModel.collection.drop().catch(() => {
-      // Collection might not exist
-    });
-    await NotificationModel.collection.drop().catch(() => {
+    await WaitlistModel.collection.drop().catch(() => {
       // Collection might not exist
     });
 
@@ -56,4 +52,3 @@ resetDatabase()
     await disconnectDatabase();
     process.exit();
   });
-

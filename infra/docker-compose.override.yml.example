@@ -1,0 +1,31 @@
+# Example override file for local development customizations
+# Copy this to docker-compose.override.yml and customize as needed
+
+version: "3.9"
+
+# This file allows you to override default docker-compose settings
+# without modifying the main docker-compose.yml file
+# 
+# Usage:
+#   1. Copy this file: cp docker-compose.override.yml.example docker-compose.override.yml
+#   2. Customize settings as needed
+#   3. docker-compose will automatically use both files
+
+services:
+  mongodb:
+    # Uncomment to expose MongoDB on a different port
+    # ports:
+    #   - "27018:27017"
+    
+    # Uncomment to add custom MongoDB configuration
+    # volumes:
+    #   - ./mongod.conf:/etc/mongod.conf:ro
+
+  redis:
+    # Uncomment to change Redis persistence settings
+    # command: ["redis-server", "--save", "30", "1", "--loglevel", "warning"]
+    
+    # Uncomment to expose Redis on a different port
+    # ports:
+    #   - "6380:6379"
+

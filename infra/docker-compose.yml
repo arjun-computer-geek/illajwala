@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 name: illajwala-dev
 
@@ -6,57 +6,77 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: illajwala-mongodb
+    restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     volumes:
       - mongo-data:/data/db
+      - mongo-config:/data/configdb
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - illajwala
+    labels:
+      - 'com.illajwala.service=mongodb'
+      - 'com.illajwala.description=Primary database for Illajwala platform'
 
   redis:
-    image: redis:7.2
+    image: redis:7.2-alpine
     container_name: illajwala-redis
+    restart: unless-stopped
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+      - '6379:6379'
+    command: ['redis-server', '--save', '60', '1', '--loglevel', 'warning', '--appendonly', 'yes']
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - illajwala
+    labels:
+      - 'com.illajwala.service=redis'
+      - 'com.illajwala.description=Session cache and slot locking'
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
     container_name: illajwala-mailhog
+    restart: unless-stopped
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web UI
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8025"]
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8025']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - illajwala
+    labels:
+      - 'com.illajwala.service=mailhog'
+      - 'com.illajwala.description=Email testing service for development'
 
 volumes:
   mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
   redis-data:
+    driver: local
 
 networks:
   illajwala:
     driver: bridge
-
+    name: illajwala-dev-network

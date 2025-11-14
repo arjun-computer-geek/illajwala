@@ -2,6 +2,8 @@
 
 This document describes the REST API endpoints for the Illajwala platform.
 
+**Last Updated**: Sprint 6 - Includes waitlist analytics, bulk operations, and priority management.
+
 ## Base URL
 
 - **Development:** `http://localhost:4000/api`
@@ -81,6 +83,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -261,6 +264,112 @@ Content-Type: application/json
 }
 ```
 
+#### Update Waitlist Status
+
+```http
+PATCH /api/waitlists/:id/status
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "status": "invited",
+  "notes": "Patient notified via SMS"
+}
+```
+
+#### Update Waitlist Priority
+
+```http
+PATCH /api/waitlists/:id/priority
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "priorityScore": 85,
+  "notes": "Manual priority override due to urgency"
+}
+```
+
+#### Bulk Update Waitlist Status
+
+```http
+POST /api/waitlists/bulk/status
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "entryIds": ["entry_id_1", "entry_id_2"],
+  "status": "invited",
+  "notes": "Bulk invitation sent"
+}
+```
+
+#### Get Waitlist Analytics
+
+```http
+GET /api/waitlists/analytics
+Authorization: Bearer <token>
+Query Parameters:
+  - startDate: ISO date string (optional)
+  - endDate: ISO date string (optional)
+  - clinicId: string (optional)
+  - doctorId: string (optional)
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "totalEntries": 150,
+    "byStatus": {
+      "active": 45,
+      "invited": 12,
+      "promoted": 80,
+      "expired": 10,
+      "cancelled": 3
+    },
+    "averageWaitTime": 2.5,
+    "averageTimeToPromotion": 18.3,
+    "promotionRate": 53.3,
+    "expiryRate": 6.7,
+    "cancellationRate": 2.0,
+    "currentQueueSize": 57,
+    "peakQueueSize": 89,
+    "entriesByDay": [{ "date": "2024-01-15", "count": 12 }],
+    "statusTransitions": [{ "from": "active", "to": "promoted", "count": 45 }]
+  }
+}
+```
+
+#### Get Waitlist Policy
+
+```http
+GET /api/waitlists/policy?clinicId=clinic_id
+Authorization: Bearer <token>
+```
+
+#### Update Waitlist Policy
+
+```http
+PUT /api/waitlists/policy
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "clinicId": "clinic_id",
+  "maxQueueSize": 250,
+  "autoExpiryHours": 72,
+  "autoPromoteBufferMinutes": 30,
+  "priorityWeights": {
+    "waitTime": 0.4,
+    "membershipLevel": 0.3,
+    "chronicCondition": 0.3
+  }
+}
+```
+
 ### Clinics
 
 #### List Clinics
@@ -310,6 +419,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -373,58 +483,166 @@ Query Parameters:
   - clinicId: string (optional)
 ```
 
+## Real-time Updates
+
+### Server-Sent Events (SSE)
+
+The platform provides real-time updates via Server-Sent Events for authenticated users.
+
+#### Waitlist Updates (Doctor)
+
+```http
+GET /api/realtime/waitlists
+Authorization: Bearer <token>
+```
+
+**Response**: Event stream with the following event types:
+
+- `waitlist.created` - New waitlist entry added
+- `waitlist.updated` - Existing entry modified
+- `waitlist.status.changed` - Entry status changed
+- `waitlist.removed` - Entry removed from waitlist
+- `heartbeat` - Connection keep-alive
+
+**Example Event:**
+
+```
+event: waitlist.created
+data: {"type":"waitlist.created","waitlist":{"_id":"...","status":"active",...}}
+```
+
+#### Appointment Updates (Patient)
+
+```http
+GET /api/realtime/appointments
+Authorization: Bearer <token>
+```
+
+**Response**: Event stream with appointment lifecycle events.
+
 ## Error Codes
 
-| Code | Description |
-|------|-------------|
-| `UNAUTHORIZED` | Authentication required |
-| `FORBIDDEN` | Insufficient permissions |
-| `NOT_FOUND` | Resource not found |
-| `VALIDATION_ERROR` | Request validation failed |
-| `CONFLICT` | Resource conflict (e.g., duplicate email) |
-| `RATE_LIMIT_EXCEEDED` | Too many requests |
-| `INTERNAL_ERROR` | Server error |
+| Code                  | Description                               |
+| --------------------- | ----------------------------------------- |
+| `UNAUTHORIZED`        | Authentication required                   |
+| `FORBIDDEN`           | Insufficient permissions                  |
+| `NOT_FOUND`           | Resource not found                        |
+| `VALIDATION_ERROR`    | Request validation failed                 |
+| `CONFLICT`            | Resource conflict (e.g., duplicate email) |
+| `RATE_LIMIT_EXCEEDED` | Too many requests                         |
+| `INTERNAL_ERROR`      | Server error                              |
+
+## Error Response Examples
+
+### Validation Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": {
+      "field": "email",
+      "message": "Invalid email format"
+    }
+  }
+}
+```
+
+### Not Found Error
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Appointment not found",
+    "details": {
+      "resource": "appointment",
+      "id": "appointment_id"
+    }
+  }
+}
+```
 
 ## Rate Limiting
 
 - **General endpoints:** 100 requests per minute
 - **Authentication endpoints:** 10 requests per minute
 - **Search endpoints:** 50 requests per minute
+- **Real-time endpoints:** 5 connections per user
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1640995200
 ```
 
-## Pagination
+When rate limit is exceeded:
 
-List endpoints support pagination:
-
-```http
-GET /api/doctors?page=1&limit=10
-```
-
-**Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "items": [ ... ],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 50,
-      "totalPages": 5
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again later.",
+    "details": {
+      "retryAfter": 60
     }
   }
 }
 ```
 
+## Pagination
+
+List endpoints support pagination:
+
+**Query Parameters:**
+
+- `page`: Page number (default: 1)
+- `pageSize`: Items per page (default: 20, max: 100)
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 150,
+    "totalPages": 8
+  }
+}
+```
+
+## Filtering & Sorting
+
+Many list endpoints support filtering and sorting:
+
+**Appointments:**
+
+- Filter by: `status`, `doctorId`, `patientId`, `clinicId`, `dateFrom`, `dateTo`
+- Sort by: `scheduledAt` (asc/desc), `createdAt` (asc/desc)
+
+**Doctors:**
+
+- Filter by: `specialization`, `city`, `consultationMode`
+- Sort by: `name` (asc/desc), `specialization`, `availability`
+
+**Waitlists:**
+
+- Filter by: `status`, `doctorId`, `clinicId`, `patientId`
+- Sort by: `priorityScore` (desc), `createdAt` (asc/desc)
+
 ## Multi-Tenant Support
 
 All endpoints are tenant-aware. The tenant context is automatically extracted from:
+
 1. JWT token claims (`tenantId`)
 2. `X-Tenant-Id` header (for service-to-service calls)
 
@@ -449,6 +667,7 @@ GET /api/health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -467,4 +686,3 @@ GET /api/metrics
 ```
 
 Returns Prometheus-compatible metrics.
-
