@@ -3,7 +3,7 @@ import axios, {
   AxiosInstance,
   AxiosRequestConfig,
   InternalAxiosRequestConfig,
-} from "axios";
+} from 'axios';
 
 export type CreateApiClientOptions = {
   baseURL: string;
@@ -16,14 +16,14 @@ export type CreateApiClientOptions = {
 
 const applyDefaultHeaders = (
   config: InternalAxiosRequestConfig,
-  headers?: Record<string, string>
+  headers?: Record<string, string>,
 ) => {
   if (!headers) {
     return config;
   }
 
   for (const [key, value] of Object.entries(headers)) {
-    if (!config.headers.hasOwnProperty(key)) {
+    if (!Object.prototype.hasOwnProperty.call(config.headers, key)) {
       config.headers.set?.(key, value);
       (config.headers as Record<string, unknown>)[key] = value;
     }
@@ -49,7 +49,7 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
       refreshPromise = options
         .refreshAccessToken()
         .catch((error) => {
-          console.error("[api] Failed to refresh access token", error);
+          console.error('[api] Failed to refresh access token', error);
           return null;
         })
         .finally(() => {
@@ -65,12 +65,12 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
 
     const token = options.getAuthToken?.();
     if (token) {
-      config.headers.set?.("Authorization", `Bearer ${token}`);
+      config.headers.set?.('Authorization', `Bearer ${token}`);
     }
 
     const tenantId = options.getTenantId?.();
     if (tenantId) {
-      config.headers.set?.("X-Tenant-Id", tenantId);
+      config.headers.set?.('X-Tenant-Id', tenantId);
     }
 
     return config;
@@ -80,10 +80,10 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
     (response) => response,
     async (error: AxiosError) => {
       const status = error.response?.status;
-      const originalRequest = error.config as (InternalAxiosRequestConfig & {
+      const originalRequest = error.config as InternalAxiosRequestConfig & {
         _retry?: boolean;
         skipAuthRefresh?: boolean;
-      });
+      };
 
       if (
         status === 401 &&
@@ -95,7 +95,7 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
         const newToken = await requestNewAccessToken();
 
         if (newToken) {
-          originalRequest.headers.set?.("Authorization", `Bearer ${newToken}`);
+          originalRequest.headers.set?.('Authorization', `Bearer ${newToken}`);
           return instance.request(originalRequest);
         }
       }
@@ -105,7 +105,7 @@ export const createApiClient = (options: CreateApiClientOptions): AxiosInstance 
       }
 
       return Promise.reject(error);
-    }
+    },
   );
 
   return instance;
@@ -127,10 +127,10 @@ export const extractApiError = (error: unknown): ApiErrorPayload => {
   return {
     status: error.response?.status,
     message:
-      typeof error.response?.data === "object" && error.response?.data !== null
-        ? (error.response?.data as { message?: string }).message ??
+      typeof error.response?.data === 'object' && error.response?.data !== null
+        ? ((error.response?.data as { message?: string }).message ??
           error.message ??
-          "Unexpected error"
+          'Unexpected error')
         : error.message,
     data: error.response?.data,
   };
@@ -138,7 +138,7 @@ export const extractApiError = (error: unknown): ApiErrorPayload => {
 
 export const createAuthenticatedRequestConfig = (
   token: string | null,
-  tenantId?: string | null
+  tenantId?: string | null,
 ): AxiosRequestConfig => {
   const headers: Record<string, string> = {};
 
@@ -147,10 +147,11 @@ export const createAuthenticatedRequestConfig = (
   }
 
   if (tenantId) {
-    headers["X-Tenant-Id"] = tenantId;
+    headers['X-Tenant-Id'] = tenantId;
   }
 
   return { headers };
 };
 
-export * from "./identity";
+export * from './identity';
+export * from './storage';

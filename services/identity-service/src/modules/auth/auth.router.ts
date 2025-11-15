@@ -8,8 +8,7 @@ import {
   handleRefreshSession,
   handleLogout,
 } from './auth.controller';
-import { validateRequest } from '../../middlewares/validate-request';
-import { loginRateLimit, moderateRateLimit } from '../../middlewares/rate-limit';
+import { validateRequest, loginRateLimit, moderateRateLimit } from '../../middlewares';
 import {
   loginDoctorSchema,
   loginPatientSchema,

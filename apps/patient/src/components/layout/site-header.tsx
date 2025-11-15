@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useState, useMemo } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Container } from "./container";
-import { ThemeToggle } from "./theme-toggle";
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { LogOut, Menu, UserRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useState, useMemo } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { Container } from './container';
+import { ThemeToggle } from './theme-toggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +17,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 const mainNavItems = [
-  { href: "/search", label: "Find Doctors" },
-  { href: "/account/appointments", label: "My Appointments" },
-  { href: "/search?consultationMode=telehealth", label: "Video consults" },
+  { href: '/search', label: 'Find Doctors' },
+  { href: '/account/appointments', label: 'My Appointments' },
+  { href: '/search?consultationMode=telehealth', label: 'Video consults' },
 ];
 
 export const SiteHeader = () => {
@@ -36,27 +36,28 @@ export const SiteHeader = () => {
     if (isAuthenticated) {
       return mainNavItems;
     }
-    return mainNavItems.filter((item) => item.href !== "/account/appointments");
+    return mainNavItems.filter((item) => item.href !== '/account/appointments');
   }, [isAuthenticated]);
 
   const handleLogout = () => {
     clearAuth();
-    toast.success("You have been signed out.");
-    router.push("/");
+    toast.success('You have been signed out.');
+    router.push('/');
   };
 
   const renderLinks = (onNavigate?: () => void) =>
     filteredNav.map((item) => {
       const isActive =
-        item.href === "/account/appointments"
+        item.href === '/account/appointments'
           ? pathname.startsWith(item.href)
           : pathname === item.href || pathname.startsWith(`${item.href}?`);
       return (
         <Link
           key={item.href}
           href={item.href}
-          className={`text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"
-            }`}
+          className={`text-sm font-medium transition-colors hover:text-primary ${
+            isActive ? 'text-primary' : 'text-muted-foreground'
+          }`}
           onClick={onNavigate}
         >
           {item.label}
@@ -84,9 +85,7 @@ export const SiteHeader = () => {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {renderLinks()}
-        </nav>
+        <nav className="hidden items-center gap-8 md:flex">{renderLinks()}</nav>
 
         <div className="hidden items-center gap-3 md:flex">
           <ThemeToggle />
@@ -95,7 +94,7 @@ export const SiteHeader = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 px-4">
                   <UserRound className="h-4 w-4" />
-                  {role === "doctor" ? "Doctor portal" : "My account"}
+                  {role === 'doctor' ? 'Doctor portal' : 'My account'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -103,6 +102,9 @@ export const SiteHeader = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/account/appointments">Appointments</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account/documents">Documents</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/search">Find a doctor</Link>
@@ -119,7 +121,11 @@ export const SiteHeader = () => {
               <Button variant="ghost" size="sm" className="px-4 text-sm font-semibold" asChild>
                 <Link href="/auth/patient/login">Sign in</Link>
               </Button>
-              <Button size="sm" className="px-5 text-sm font-semibold uppercase tracking-[0.3em]" asChild>
+              <Button
+                size="sm"
+                className="px-5 text-sm font-semibold uppercase tracking-[0.3em]"
+                asChild
+              >
                 <Link href="/search">Book appointment</Link>
               </Button>
             </>
@@ -172,4 +178,3 @@ export const SiteHeader = () => {
     </header>
   );
 };
-

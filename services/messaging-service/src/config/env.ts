@@ -1,24 +1,20 @@
-import { config as loadEnv } from "dotenv";
-import { z } from "zod";
+import { config as loadEnv } from 'dotenv';
+import { z } from 'zod';
 
 // Load .env.* files before parsing. This keeps the development experience
 // aligned with our other services.
 loadEnv();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z
     .string()
     .optional()
     .transform((value) => (value ? Number(value) : 4200))
-    .pipe(
-      z
-        .number()
-        .min(1000, "PORT should be >= 1000")
-        .max(65535, "PORT should be <= 65535")
-    ),
-  REDIS_URL: z.string().url("Provide REDIS_URL for BullMQ queues"),
-  SERVICE_NAME: z.string().default("messaging-service"),
+    .pipe(z.number().min(1000, 'PORT should be >= 1000').max(65535, 'PORT should be <= 65535')),
+  NATS_URL: z.string().url().default('nats://localhost:4222'),
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
+  SERVICE_NAME: z.string().default('messaging-service'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z
     .string()
@@ -27,7 +23,7 @@ const envSchema = z.object({
   SMTP_SECURE: z
     .string()
     .optional()
-    .transform((value) => (value ? value === "true" : undefined)),
+    .transform((value) => (value ? value === 'true' : undefined)),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM_EMAIL: z.string().email().optional(),
@@ -35,7 +31,7 @@ const envSchema = z.object({
   SMS_PROVIDER_SENDER: z.string().optional(),
   WHATSAPP_PROVIDER_API_KEY: z.string().optional(),
   WHATSAPP_BUSINESS_NUMBER: z.string().optional(),
-  DEFAULT_LOCALE: z.string().default("en"),
+  DEFAULT_LOCALE: z.string().default('en'),
 });
 
 export const env = envSchema.parse(process.env);
@@ -81,5 +77,3 @@ export const whatsappConfig = (() => {
     apiKey: env.WHATSAPP_PROVIDER_API_KEY ?? null,
   };
 })();
-
-

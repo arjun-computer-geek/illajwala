@@ -1,24 +1,19 @@
-import { StatusCodes } from "http-status-codes";
-import type { FilterQuery } from "mongoose";
-import { Types } from "mongoose";
-import { verifyPassword, hashPassword } from "../../utils/password";
-import {
-  signAccessToken,
-  signRefreshToken,
-  verifyRefreshToken,
-  type TokenRole,
-  type TokenPayload,
-} from "../../utils/jwt";
-import { PatientModel, type PatientDocument } from "../patients/patient.model";
-import { DoctorModel, type DoctorDocument } from "../doctors/doctor.model";
-import { AdminModel, type AdminDocument } from "../admins/admin.model";
+import { StatusCodes } from 'http-status-codes';
+import type { FilterQuery } from 'mongoose';
+import { Types } from 'mongoose';
+import { verifyPassword, hashPassword } from '../../utils/password';
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../middlewares';
+import type { TokenRole, TokenPayload } from '@illajwala/shared';
+import { PatientModel, type PatientDocument } from '../patients/patient.model';
+import { DoctorModel, type DoctorDocument } from '../doctors/doctor.model';
+import { AdminModel, type AdminDocument } from '../admins/admin.model';
 import type {
   RegisterPatientInput,
   LoginPatientInput,
   LoginDoctorInput,
   LoginAdminInput,
-} from "./auth.schema";
-import { AppError } from "../../utils/app-error";
+} from './auth.schema';
+import { AppError } from '../../utils';
 
 type AuthTokens = {
   token: string;
@@ -29,18 +24,18 @@ type AuthTokens = {
 type PatientAuthResult = AuthTokens & {
   tenantId: string;
   patient: Record<string, unknown>;
-  role: "patient";
+  role: 'patient';
 };
 
 type DoctorAuthResult = AuthTokens & {
   tenantId: string;
   doctor: Record<string, unknown>;
-  role: "doctor";
+  role: 'doctor';
 };
 
 type AdminAuthResult = AuthTokens & {
   admin: Record<string, unknown>;
-  role: "admin";
+  role: 'admin';
 };
 
 type AuthResult = PatientAuthResult | DoctorAuthResult | AdminAuthResult;
@@ -48,7 +43,9 @@ type AuthResult = PatientAuthResult | DoctorAuthResult | AdminAuthResult;
 const issueTokens = (id: string, role: TokenRole, tenantId?: string | null): AuthTokens => {
   const normalizedTenantId: string | null = tenantId ?? null;
   const payload: TokenPayload =
-    normalizedTenantId !== null ? { sub: id, role, tenantId: normalizedTenantId } : { sub: id, role };
+    normalizedTenantId !== null
+      ? { sub: id, role, tenantId: normalizedTenantId }
+      : { sub: id, role };
 
   const tokens: AuthTokens = {
     token: signAccessToken(payload),
@@ -77,37 +74,37 @@ const scrubAdmin = (admin: AdminDocument) => {
 };
 
 const buildPatientAuthResult = (patient: PatientDocument): PatientAuthResult => {
-  const tokens = issueTokens(patient.id, "patient", patient.tenantId);
+  const tokens = issueTokens(patient.id, 'patient', patient.tenantId);
   return {
     ...tokens,
     tenantId: patient.tenantId,
     patient: scrubPatient(patient),
-    role: "patient",
+    role: 'patient',
   };
 };
 
 const buildDoctorAuthResult = (doctor: DoctorDocument): DoctorAuthResult => {
-  const tokens = issueTokens(doctor.id, "doctor", doctor.tenantId);
+  const tokens = issueTokens(doctor.id, 'doctor', doctor.tenantId);
   return {
     ...tokens,
     tenantId: doctor.tenantId,
     doctor: scrubDoctor(doctor),
-    role: "doctor",
+    role: 'doctor',
   };
 };
 
 const buildAdminAuthResult = (admin: AdminDocument): AdminAuthResult => {
-  const tokens = issueTokens(admin.id, "admin", admin.tenantId ?? null);
+  const tokens = issueTokens(admin.id, 'admin', admin.tenantId ?? null);
   return {
     ...tokens,
     admin: scrubAdmin(admin),
-    role: "admin",
+    role: 'admin',
   };
 };
 
 export const registerPatient = async (
   payload: RegisterPatientInput,
-  tenantId: string
+  tenantId: string,
 ): Promise<PatientAuthResult> => {
   const existingPatient = await PatientModel.findOne({
     tenantId,
@@ -117,7 +114,7 @@ export const registerPatient = async (
   if (existingPatient) {
     throw AppError.from({
       statusCode: StatusCodes.CONFLICT,
-      message: "Patient already exists",
+      message: 'Patient already exists',
     });
   }
   const passwordHash = await hashPassword(payload.password);
@@ -135,13 +132,13 @@ export const registerPatient = async (
 
 export const loginPatient = async (
   payload: LoginPatientInput,
-  tenantId: string
+  tenantId: string,
 ): Promise<PatientAuthResult> => {
   const patient = await PatientModel.findOne({ email: payload.email, tenantId });
   if (!patient) {
     throw AppError.from({
       statusCode: StatusCodes.UNAUTHORIZED,
-      message: "Invalid credentials",
+      message: 'Invalid credentials',
     });
   }
 
@@ -149,7 +146,7 @@ export const loginPatient = async (
   if (!isValid) {
     throw AppError.from({
       statusCode: StatusCodes.UNAUTHORIZED,
-      message: "Invalid credentials",
+      message: 'Invalid credentials',
     });
   }
   return buildPatientAuthResult(patient);
@@ -157,7 +154,7 @@ export const loginPatient = async (
 
 export const loginDoctor = async (
   payload: LoginDoctorInput,
-  tenantId: string
+  tenantId: string,
 ): Promise<DoctorAuthResult> => {
   const orConditions: FilterQuery<DoctorDocument>[] = [{ email: payload.email }];
   if (payload.phone) {
@@ -169,7 +166,7 @@ export const loginDoctor = async (
   if (!doctor) {
     throw AppError.from({
       statusCode: StatusCodes.NOT_FOUND,
-      message: "Doctor not found",
+      message: 'Doctor not found',
     });
   }
 
@@ -182,7 +179,7 @@ export const loginAdmin = async (payload: LoginAdminInput): Promise<AdminAuthRes
   if (!admin) {
     throw AppError.from({
       statusCode: StatusCodes.UNAUTHORIZED,
-      message: "Invalid credentials",
+      message: 'Invalid credentials',
     });
   }
 
@@ -190,7 +187,7 @@ export const loginAdmin = async (payload: LoginAdminInput): Promise<AdminAuthRes
   if (!isValid) {
     throw AppError.from({
       statusCode: StatusCodes.UNAUTHORIZED,
-      message: "Invalid credentials",
+      message: 'Invalid credentials',
     });
   }
 
@@ -201,11 +198,11 @@ export const refreshSession = async (refreshToken: string): Promise<AuthResult> 
   const payload = verifyRefreshToken(refreshToken);
 
   switch (payload.role) {
-    case "patient": {
+    case 'patient': {
       if (!payload.tenantId) {
         throw AppError.from({
           statusCode: StatusCodes.UNAUTHORIZED,
-          message: "Invalid patient session context",
+          message: 'Invalid patient session context',
         });
       }
 
@@ -213,16 +210,16 @@ export const refreshSession = async (refreshToken: string): Promise<AuthResult> 
       if (!patient) {
         throw AppError.from({
           statusCode: StatusCodes.UNAUTHORIZED,
-          message: "Patient not found",
+          message: 'Patient not found',
         });
       }
       return buildPatientAuthResult(patient);
     }
-    case "doctor": {
+    case 'doctor': {
       if (!payload.tenantId) {
         throw AppError.from({
           statusCode: StatusCodes.UNAUTHORIZED,
-          message: "Invalid doctor session context",
+          message: 'Invalid doctor session context',
         });
       }
 
@@ -230,17 +227,17 @@ export const refreshSession = async (refreshToken: string): Promise<AuthResult> 
       if (!doctor) {
         throw AppError.from({
           statusCode: StatusCodes.UNAUTHORIZED,
-          message: "Doctor not found",
+          message: 'Doctor not found',
         });
       }
       return buildDoctorAuthResult(doctor);
     }
-    case "admin": {
+    case 'admin': {
       const admin = await AdminModel.findById(payload.sub);
       if (!admin) {
         throw AppError.from({
           statusCode: StatusCodes.UNAUTHORIZED,
-          message: "Admin not found",
+          message: 'Admin not found',
         });
       }
       return buildAdminAuthResult(admin);
@@ -248,8 +245,7 @@ export const refreshSession = async (refreshToken: string): Promise<AuthResult> 
     default:
       throw AppError.from({
         statusCode: StatusCodes.UNAUTHORIZED,
-        message: "Unsupported token role",
+        message: 'Unsupported token role',
       });
   }
 };
-

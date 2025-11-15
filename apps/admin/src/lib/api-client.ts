@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { createApiClient } from "@illajwala/api-client";
+import { createApiClient } from '@illajwala/api-client';
 import {
   tokenRefreshResponseSchema,
   type ApiResponse,
   type TokenRefreshResponse,
-} from "@illajwala/types";
-import { adminAppConfig } from "./config";
+} from '@illajwala/types';
+import { adminAppConfig } from './config';
 
 let authToken: string | null = null;
 let tenantId: string | null = null;
@@ -64,9 +64,9 @@ export const setAdminTenant = (id: string | null) => {
 const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const response = await adminApiClient.post<ApiResponse<TokenRefreshResponse>>(
-      "/auth/refresh",
+      '/auth/refresh',
       {},
-      { skipAuthRefresh: true } as any
+      { skipAuthRefresh: true } as any,
     );
     const result = tokenRefreshResponseSchema.parse(response.data.data);
 
@@ -76,7 +76,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 
     return result.token;
   } catch (error) {
-    console.warn("[admin-api] Refresh token request failed:", error);
+    console.warn('[admin-api] Refresh token request failed:', error);
     setAdminAuthToken(null);
     setAdminTenant(null);
     notifyUnauthorizedListeners();
@@ -90,10 +90,13 @@ export const adminApiClient = createApiClient({
   getTenantId: () => tenantId,
   refreshAccessToken,
   onUnauthorized: () => {
-    console.warn("[admin-api] Unauthorized response received, clearing auth token");
+    console.warn('[admin-api] Unauthorized response received, clearing auth token');
     setAdminAuthToken(null);
     setAdminTenant(null);
     notifyUnauthorizedListeners();
   },
 });
 
+// Export getters for use in service-specific clients
+export const getAdminAuthToken = () => authToken;
+export const getAdminTenant = () => tenantId;

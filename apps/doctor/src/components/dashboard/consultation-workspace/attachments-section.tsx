@@ -1,8 +1,9 @@
 'use client';
 
-import { Button } from '@illajwala/ui';
-import { Paperclip, Plus, Trash2 } from 'lucide-react';
+import { FileUpload, useFileUpload, Button } from '@illajwala/ui';
+import { Paperclip, Trash2 } from 'lucide-react';
 import React from 'react';
+import { doctorApiClient } from '../../../lib/api-client';
 
 type AttachmentDraft = {
   id: string;
@@ -15,19 +16,64 @@ type AttachmentDraft = {
 
 type AttachmentsSectionProps = {
   attachments: AttachmentDraft[];
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileSelect: (files: FileList | null) => void;
+  onAttachmentsChange: (attachments: AttachmentDraft[]) => void;
+  appointmentId: string;
 };
 
 export const AttachmentsSection = ({
   attachments,
-  onAdd,
-  onRemove,
-  fileInputRef,
-  onFileSelect,
+  onAttachmentsChange,
+  appointmentId,
 }: AttachmentsSectionProps) => {
+  const { uploadFiles, progress, isUploading, removeFile } = useFileUpload({
+    apiClient: doctorApiClient,
+    category: 'consultation-attachment',
+    relatedEntityType: 'appointment',
+    relatedEntityId: appointmentId,
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ],
+    onUploadComplete: (uploadedFile) => {
+      if (uploadedFile) {
+        // Check if file already exists to avoid duplicates
+        const existingIds = new Set(attachments.map((att) => att.id));
+        if (!existingIds.has(uploadedFile._id)) {
+          const newAttachment: AttachmentDraft = {
+            id: uploadedFile._id,
+            key: uploadedFile.key,
+            name: uploadedFile.metadata.originalName,
+            url: uploadedFile.url,
+            contentType: uploadedFile.metadata.mimeType,
+            sizeInBytes: uploadedFile.metadata.sizeInBytes,
+          };
+          onAttachmentsChange([...attachments, newAttachment]);
+        }
+      }
+    },
+    onUploadError: (error) => {
+      console.error('File upload error:', error);
+    },
+  });
+
+  const handleFilesSelected = async (files: File[]) => {
+    if (files.length === 0) return;
+    await uploadFiles(files);
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    // Remove from local state
+    onAttachmentsChange(attachments.filter((att) => att.id !== id));
+    // Remove from upload progress if still uploading
+    removeFile(id);
+  };
+
   return (
     <section className="space-y-4 rounded-2xl border border-border bg-background/60 p-5">
       <div className="flex items-center justify-between">
@@ -35,34 +81,34 @@ export const AttachmentsSection = ({
           <Paperclip className="h-4 w-4" />
           Attachments
         </span>
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(event) => onFileSelect(event.target.files)}
-          />
-          <Button size="sm" variant="outline" className="rounded-full px-3 text-xs" onClick={onAdd}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Add files
-          </Button>
-        </div>
       </div>
-      {attachments.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-          Upload lab orders, prescriptions, or consent forms. S3 uploads are stubbed in development;
-          metadata is stored for QA.
-        </p>
-      ) : (
-        <div className="space-y-3">
+
+      <FileUpload
+        onFilesSelected={handleFilesSelected}
+        progress={progress}
+        isUploading={isUploading}
+        maxFiles={10}
+        maxSize={10 * 1024 * 1024} // 10MB
+        accept={{
+          'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
+          'application/pdf': ['.pdf'],
+          'application/msword': ['.doc'],
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+          'text/plain': ['.txt'],
+        }}
+        disabled={isUploading}
+        className="w-full"
+      />
+
+      {attachments.length > 0 && (
+        <div className="mt-4 space-y-3">
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
               className="flex items-center justify-between rounded-xl border border-border/60 bg-background/80 p-4"
             >
-              <div className="space-y-1 text-sm">
-                <p className="font-medium text-foreground">{attachment.name}</p>
+              <div className="space-y-1 text-sm flex-1 min-w-0">
+                <p className="font-medium text-foreground truncate">{attachment.name}</p>
                 <p className="text-xs text-muted-foreground/80">
                   {attachment.contentType ?? 'application/octet-stream'}
                   {attachment.sizeInBytes
@@ -74,8 +120,8 @@ export const AttachmentsSection = ({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="text-destructive hover:text-destructive"
-                onClick={() => onRemove(attachment.id)}
+                className="text-destructive hover:text-destructive shrink-0"
+                onClick={() => handleRemoveAttachment(attachment.id)}
                 aria-label="Remove attachment"
               >
                 <Trash2 className="h-4 w-4" />

@@ -68,6 +68,30 @@ services:
       - 'com.illajwala.service=mailhog'
       - 'com.illajwala.description=Email testing service for development'
 
+  nats:
+    image: nats:2.10-alpine
+    container_name: illajwala-nats
+    restart: unless-stopped
+    ports:
+      - '4222:4222' # Client connections
+      - '8222:8222' # HTTP monitoring
+      - '6222:6222' # Cluster routing
+    command:
+      - '-js'
+      - '-m'
+      - '8222'
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8222/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - illajwala
+    labels:
+      - 'com.illajwala.service=nats'
+      - 'com.illajwala.description=Event bus for service-to-service communication'
+
 volumes:
   mongo-data:
     driver: local

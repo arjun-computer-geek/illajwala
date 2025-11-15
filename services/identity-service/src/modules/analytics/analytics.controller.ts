@@ -1,40 +1,46 @@
 'use strict';
 
 import type { Request, Response, RequestHandler } from 'express';
-import { successResponse } from '../../utils/api-response';
-import { catchAsync } from '../../utils/catch-async';
-import { getOpsAnalyticsSeries, getOpsMetricsSummary } from './analytics.service';
-import { getSLAMetrics } from './sla-analytics.service';
-import { getClinicMetrics } from './clinic-metrics.service';
-import { requireTenantId } from '../../utils/tenant';
+import { successResponse, catchAsync, requireTenantId } from '../../utils';
+import { getServiceClients } from '../../config/service-clients';
+import type { AuthenticatedRequest } from '../../utils';
 
-export const handleGetOpsPulse: RequestHandler = catchAsync(async (req: Request, res: Response) => {
-  const tenantId = requireTenantId(req);
-  const metrics = await getOpsMetricsSummary(tenantId);
-  return res.json(successResponse(metrics));
-});
+export const handleGetOpsPulse: RequestHandler = catchAsync(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = requireTenantId(req);
+    const { analytics } = getServiceClients(req);
+    const metrics = await analytics.getOpsPulse(tenantId);
+    return res.json(successResponse(metrics));
+  },
+);
 
 export const handleGetOpsSeries: RequestHandler = catchAsync(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = requireTenantId(req);
-    const series = await getOpsAnalyticsSeries(tenantId);
+    const query = req.query as { days?: string };
+    const days = query.days ? parseInt(query.days, 10) : 14;
+    const { analytics } = getServiceClients(req);
+    const series = await analytics.getOpsSeries(tenantId, days);
     return res.json(successResponse(series));
   },
 );
 
 export const handleGetSLAMetrics: RequestHandler = catchAsync(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = requireTenantId(req);
-    const metrics = await getSLAMetrics(tenantId);
+    const query = req.query as { startDate?: string; endDate?: string };
+    const { analytics } = getServiceClients(req);
+    const metrics = await analytics.getSLAMetrics(tenantId, query.startDate, query.endDate);
     return res.json(successResponse(metrics));
   },
 );
 
 export const handleGetClinicMetrics: RequestHandler = catchAsync(
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = requireTenantId(req);
     const query = req.query as { clinicId?: string };
-    const metrics = await getClinicMetrics(tenantId, query.clinicId);
+    const { analytics } = getServiceClients(req);
+    const metrics = await analytics.getClinicMetrics(tenantId, query.clinicId);
     return res.json(successResponse(metrics));
   },
 );

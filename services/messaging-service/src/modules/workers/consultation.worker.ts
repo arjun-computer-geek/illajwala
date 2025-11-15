@@ -1,67 +1,63 @@
-import { Worker, type Queue } from "bullmq";
-import type IORedis from "ioredis";
-import type { Logger } from "pino";
-import type { ConsultationEvent } from "../types/consultation-event";
-import { sendConsultationEmail } from "../notifications/email.sender";
-import { sendConsultationSms } from "../notifications/sms.sender";
-import { sendConsultationWhatsapp } from "../notifications/whatsapp.sender";
-import { recordJobDuration, recordJobFailure } from "../metrics";
+import type { Logger } from 'pino';
+import type { ConsultationEvent } from '@illajwala/types';
+import { createEventSubscriber } from '@illajwala/event-bus';
+import { sendConsultationEmail } from '../notifications/email.sender';
+import { sendConsultationSms } from '../notifications/sms.sender';
+import { sendConsultationWhatsapp } from '../notifications/whatsapp.sender';
 
 type RegisterConsultationWorkerOptions = {
-  connection: IORedis;
   logger: Logger;
-  queue: Queue<ConsultationEvent>;
-  deadLetterQueue: Queue<ConsultationEvent>;
 };
 
 /**
- * Placeholder worker that logs consultation lifecycle updates. Once messaging
- * channels are ready we can fan out to email/SMS/Webhooks from this handler.
+ * Worker that subscribes to consultation events from NATS event bus and sends
+ * notifications via email, SMS, and WhatsApp.
  */
-export const registerConsultationWorker = ({
-  connection,
-  logger,
-  queue,
-  deadLetterQueue,
-}: RegisterConsultationWorkerOptions): Worker<ConsultationEvent> => {
-  const worker = new Worker<ConsultationEvent>(
-    queue.name,
-    async (job: { id: string; data: ConsultationEvent }) => {
-      logger.info({ jobId: job.id, event: job.data.type }, "Received consultation event");
-      const startedAt = Date.now();
-      await sendConsultationEmail(job.data, logger);
-      await sendConsultationSms(job.data, logger);
-      await sendConsultationWhatsapp(job.data, logger);
-      recordJobDuration(job.data.type, Date.now() - startedAt);
+export const registerConsultationWorker = async ({ logger }: RegisterConsultationWorkerOptions) => {
+  const subscriber = createEventSubscriber({
+    queueGroup: 'messaging-service',
+  });
+
+  await subscriber.connect();
+
+  // Subscribe to all consultation event types
+  const consultationEventTypes: Array<ConsultationEvent['type']> = [
+    'consultation.checked-in',
+    'consultation.in-session',
+    'consultation.completed',
+    'consultation.no-show',
+  ];
+
+  for (const eventType of consultationEventTypes) {
+    await subscriber.subscribe<ConsultationEvent>(eventType, async (event: ConsultationEvent) => {
+      try {
+        logger.info(
+          { eventType: event.type, appointmentId: event.appointmentId },
+          'Received consultation event',
+        );
+
+        await Promise.all([
+          sendConsultationEmail(event, logger),
+          sendConsultationSms(event, logger),
+          sendConsultationWhatsapp(event, logger),
+        ]);
+
+        logger.debug({ eventType: event.type }, 'Consultation event processed successfully');
+      } catch (error) {
+        logger.error({ eventType: event.type, error }, 'Failed to handle consultation event');
+        // In NATS, there's no dead letter queue, so we just log the error
+        // For production, you might want to implement a retry mechanism or DLQ
+      }
+    });
+  }
+
+  logger.info('Consultation worker subscribed to NATS events');
+
+  return {
+    subscriber,
+    shutdown: async () => {
+      await subscriber.disconnect();
+      logger.info('Consultation worker disconnected');
     },
-    {
-      connection,
-      concurrency: 5,
-    }
-  );
-
-  worker.on("completed", (job: any) => {
-    logger.debug({ jobId: job?.id }, "Consultation event processed");
-  });
-
-  worker.on("failed", (job: any, error: unknown) => {
-    logger.error({ jobId: job?.id, error }, "Failed to handle consultation event");
-    if (job?.data?.type) {
-      recordJobFailure(job.data.type);
-    }
-    if (job?.data) {
-      void deadLetterQueue
-        .add(job.data.type ?? "consultation-event", job.data, {
-          removeOnComplete: 100,
-          attempts: 1,
-        })
-        .catch((dlqError) => {
-          logger.error({ jobId: job?.id, error: dlqError }, "Unable to enqueue consultation event to DLQ");
-        });
-    }
-  });
-
-  return worker;
+  };
 };
-
-

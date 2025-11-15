@@ -1,15 +1,26 @@
-import { Queue } from "bullmq";
-import type { WaitlistEvent } from "@illajwala/types";
-import { redis } from "../../config/redis";
+import type { WaitlistEvent } from '@illajwala/types';
+import { createEventPublisher } from '@illajwala/event-bus';
 
-const waitlistQueue = new Queue<WaitlistEvent>("waitlist-events", {
-  connection: redis,
-});
+// Create a singleton event publisher instance
+let eventPublisher: ReturnType<typeof createEventPublisher> | null = null;
 
-export const publishWaitlistEvent = async (payload: WaitlistEvent) => {
-  await waitlistQueue.add(payload.type, payload, {
-    removeOnComplete: 100,
-    removeOnFail: 25,
-  });
+const getEventPublisher = async () => {
+  if (!eventPublisher) {
+    eventPublisher = createEventPublisher();
+    await eventPublisher.connect();
+  }
+  return eventPublisher;
 };
 
+export const publishWaitlistEvent = async (payload: WaitlistEvent) => {
+  const publisher = await getEventPublisher();
+  await publisher.publish(payload);
+};
+
+// Graceful shutdown
+export const disconnectWaitlistEventPublisher = async () => {
+  if (eventPublisher) {
+    await eventPublisher.disconnect();
+    eventPublisher = null;
+  }
+};

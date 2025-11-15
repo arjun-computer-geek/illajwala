@@ -6,9 +6,7 @@ import {
   handleConfirmAppointmentPayment,
   handleUpdateAppointmentPayment,
 } from './appointments.controller';
-import { requireAuth } from '../../middlewares/auth';
-import { validateRequest } from '../../middlewares/validate-request';
-import { paymentRateLimit } from '../../middlewares/rate-limit';
+import { requireAuth, validateRequest, paymentRateLimit } from '../../middlewares';
 import {
   createAppointmentSchema,
   updateAppointmentStatusSchema,

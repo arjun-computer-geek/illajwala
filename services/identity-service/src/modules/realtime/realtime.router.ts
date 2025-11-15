@@ -3,12 +3,11 @@
 import { Router } from 'express';
 import type { Response } from 'express';
 import { randomUUID } from 'crypto';
-import { requireAuth } from '../../middlewares/auth';
-import { getOpsMetricsSummary } from '../analytics/analytics.service';
-import { AppointmentModel } from '../appointments/appointment.model';
+import { requireAuth } from '../../middlewares';
+import { getServiceClients } from '../../config/service-clients';
 import { WaitlistModel } from '../waitlists/waitlist.model';
-import type { AuthenticatedRequest } from '../../middlewares/auth';
-import { requireTenantId } from '../../utils/tenant';
+import type { AuthenticatedRequest } from '../../utils';
+import { requireTenantId } from '../../utils';
 
 const setupSse = (res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -158,7 +157,8 @@ realtimeRouter.get('/dashboard', requireAuth(['admin']), async (req, res, next) 
     };
 
     const publishMetrics = async () => {
-      const metrics = await getOpsMetricsSummary(tenantId);
+      const { analytics } = getServiceClients(req);
+      const metrics = await analytics.getOpsPulse(tenantId);
       sendEvent({
         type: 'metrics.updated',
         metrics,
@@ -212,17 +212,17 @@ realtimeRouter.get(
         throw new Error('Tenant context missing');
       }
 
+      const { appointment } = getServiceClients(req);
       const cleanup = registerAppointmentStream({
         res,
         fetchAppointments: async () => {
-          const results = await AppointmentModel.find({ tenantId, doctor: doctorId })
-            .populate('patient', 'name email phone')
-            .populate('doctor', 'name specialization consultationModes fee clinicLocations')
-            .sort({ scheduledAt: 1 })
-            .limit(100)
-            .lean({ getters: true });
-
-          return results.map((appointment) => serializeAppointment(appointment));
+          const result = await appointment.listAppointments({
+            doctorId,
+            limit: 100,
+          });
+          return result.appointments.map((apt: SerializableAppointment) =>
+            serializeAppointment(apt),
+          );
         },
         onClose: () => {
           res.end();
@@ -255,17 +255,17 @@ realtimeRouter.get(
         throw new Error('Tenant context missing');
       }
 
+      const { appointment } = getServiceClients(req);
       const cleanup = registerAppointmentStream({
         res,
         fetchAppointments: async () => {
-          const results = await AppointmentModel.find({ tenantId, patient: patientId })
-            .populate('patient', 'name email phone')
-            .populate('doctor', 'name specialization consultationModes fee clinicLocations')
-            .sort({ scheduledAt: 1 })
-            .limit(100)
-            .lean({ getters: true });
-
-          return results.map((appointment) => serializeAppointment(appointment));
+          const result = await appointment.listAppointments({
+            patientId,
+            limit: 100,
+          });
+          return result.appointments.map((apt: SerializableAppointment) =>
+            serializeAppointment(apt),
+          );
         },
         onClose: () => {
           res.end();

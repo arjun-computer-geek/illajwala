@@ -16,6 +16,26 @@ export type AttachmentDraft = {
   sizeInBytes?: number;
 };
 
+export type PrescriptionDraft = {
+  id: string;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
+  refills?: number;
+};
+
+export type ReferralDraft = {
+  id: string;
+  type: 'specialist' | 'lab' | 'imaging' | 'therapy' | 'other';
+  specialty?: string;
+  provider?: string;
+  reason: string;
+  priority?: 'routine' | 'urgent' | 'emergency';
+  notes?: string;
+};
+
 export const formatDuration = (milliseconds: number) => {
   if (milliseconds <= 0) {
     return '00:00';
@@ -60,4 +80,26 @@ export const mapAttachments = (appointment: Appointment): AttachmentDraft[] =>
     url: attachment.url,
     contentType: attachment.contentType,
     sizeInBytes: attachment.sizeInBytes,
+  }));
+
+export const mapPrescriptions = (appointment: Appointment): PrescriptionDraft[] =>
+  (appointment.consultation?.prescriptions ?? []).map((prescription, index) => ({
+    id: `prescription-${index}-${prescription.medication}`,
+    medication: prescription.medication,
+    dosage: prescription.dosage,
+    frequency: prescription.frequency,
+    duration: prescription.duration,
+    instructions: prescription.instructions,
+    refills: prescription.refills,
+  }));
+
+export const mapReferrals = (appointment: Appointment): ReferralDraft[] =>
+  (appointment.consultation?.referrals ?? []).map((referral, index) => ({
+    id: `referral-${index}-${referral.type}`,
+    type: referral.type,
+    specialty: referral.specialty,
+    provider: referral.provider,
+    reason: referral.reason,
+    priority: referral.priority,
+    notes: referral.notes,
   }));
